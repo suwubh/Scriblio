@@ -1,5 +1,6 @@
 Overview
 🎨 Scriblio is a real‑time collaborative whiteboard using CRDTs (Yjs) for conflict‑free multi‑user editing, hybrid WebRTC/WebSocket transport, and Redis for presence/pub‑sub, plus an AI command palette for diagramming and summaries.
+
 ⚡ Built with React + TypeScript on Vite for fast local dev, HMR, and optimized production builds.
 
 Demo
