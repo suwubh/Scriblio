@@ -1,5 +1,4 @@
 // src/engine/renderer.ts
-
 import rough from 'roughjs';
 import { ExcalidrawElement, AppState } from '../types/excalidraw';
 
@@ -7,6 +6,7 @@ export class CanvasRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private roughCanvas: any;
+  private imageCache: Map<string, HTMLImageElement> = new Map();
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -14,9 +14,8 @@ export class CanvasRenderer {
     this.roughCanvas = rough.canvas(canvas);
   }
 
-  render(elements: ExcalidrawElement[], appState: AppState) {
+  render(elements: ExcalidrawElement[], appState: AppState, selectionRect?: { start: { x: number; y: number }; current: { x: number; y: number } } | null) {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    
     this.ctx.save();
     this.ctx.translate(appState.viewTransform.x, appState.viewTransform.y);
     this.ctx.scale(appState.viewTransform.zoom, appState.viewTransform.zoom);
@@ -24,6 +23,10 @@ export class CanvasRenderer {
     elements.forEach(element => {
       this.renderElement(element, appState.selectedElementIds.includes(element.id));
     });
+
+    if (selectionRect) {
+      this.renderSelectionRectangle(selectionRect);
+    }
 
     this.ctx.restore();
   }
@@ -47,7 +50,6 @@ export class CanvasRenderer {
       case 'rectangle':
         this.roughCanvas.rectangle(0, 0, element.width, element.height, options);
         break;
-
       case 'ellipse':
         this.roughCanvas.ellipse(
           element.width / 2,
@@ -57,27 +59,25 @@ export class CanvasRenderer {
           options
         );
         break;
-
       case 'diamond':
         this.renderDiamond(element, options);
         break;
-
       case 'arrow':
         this.renderArrow(element, options);
         break;
-
       case 'line':
         if (element.points && element.points.length >= 2) {
           this.roughCanvas.linearPath(element.points.map(p => [p.x, p.y]), options);
         }
         break;
-
       case 'freedraw':
         this.renderFreehand(element, options);
         break;
-
       case 'text':
         this.renderText(element);
+        break;
+      case 'image':
+        this.renderImage(element);
         break;
     }
 
@@ -86,6 +86,41 @@ export class CanvasRenderer {
     }
 
     this.ctx.restore();
+  }
+
+  private renderImage(element: ExcalidrawElement) {
+    if (!element.imageData) return;
+
+    let img = this.imageCache.get(element.id);
+    
+    if (!img) {
+      img = new Image();
+      img.onload = () => {
+        // Re-render when image loads
+        this.ctx.drawImage(img!, 0, 0, element.width, element.height);
+      };
+      img.src = element.imageData;
+      this.imageCache.set(element.id, img);
+    } else if (img.complete) {
+      this.ctx.drawImage(img, 0, 0, element.width, element.height);
+    }
+  }
+
+  private renderSelectionRectangle(selectionRect: { start: { x: number; y: number }; current: { x: number; y: number } }) {
+    const minX = Math.min(selectionRect.start.x, selectionRect.current.x);
+    const maxX = Math.max(selectionRect.start.x, selectionRect.current.x);
+    const minY = Math.min(selectionRect.start.y, selectionRect.current.y);
+    const maxY = Math.max(selectionRect.start.y, selectionRect.current.y);
+
+    this.ctx.strokeStyle = '#6965db';
+    this.ctx.fillStyle = 'rgba(105, 101, 219, 0.08)';
+    this.ctx.lineWidth = 1;
+    this.ctx.setLineDash([8, 4]);
+    
+    this.ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
+    this.ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+    
+    this.ctx.setLineDash([]);
   }
 
   private renderDiamond(element: ExcalidrawElement, options: any) {
@@ -104,20 +139,17 @@ export class CanvasRenderer {
     const startY = 0;
     const endX = element.width;
     const endY = element.height;
-
-    // Draw main line
+    
     this.roughCanvas.line(startX, startY, endX, endY, options);
-
-    // Draw arrowhead
+    
     const angle = Math.atan2(endY - startY, endX - startX);
     const arrowLength = 20;
     const arrowAngle = Math.PI / 6;
-
     const arrowHead1X = endX - arrowLength * Math.cos(angle - arrowAngle);
     const arrowHead1Y = endY - arrowLength * Math.sin(angle - arrowAngle);
     const arrowHead2X = endX - arrowLength * Math.cos(angle + arrowAngle);
     const arrowHead2Y = endY - arrowLength * Math.sin(angle + arrowAngle);
-
+    
     this.roughCanvas.line(endX, endY, arrowHead1X, arrowHead1Y, options);
     this.roughCanvas.line(endX, endY, arrowHead2X, arrowHead2Y, options);
   }

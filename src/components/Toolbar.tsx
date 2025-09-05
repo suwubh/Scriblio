@@ -35,6 +35,43 @@ export function Toolbar({ activeTool, onToolChange, isToolLocked, onToggleToolLo
           <span className="tool-icon">{tool.icon}</span>
         </button>
       ))}
+
+        <span
+  aria-hidden="true"
+  style={{
+    position: 'absolute',
+    left: '50%',
+    transform: 'translateX(-50%) translateY(1px)',
+    pointerEvents: 'none',
+    fontFamily: "'Fredoka One','Luckiest Guy','Chewy','Baloo 2','Comic Sans MS',cursive",
+    fontWeight: 700,
+    fontSize: '3.8rem',
+    letterSpacing: '2px',
+    userSelect: 'none',
+    display: 'flex', // so we can color each letter
+    gap: '2px'
+  }}
+>
+  {['S','c','r','i','b','l','i','o'].map((char, i) => (
+    <span
+      key={i}
+      style={{
+        color: ['#ff5252','#ffca28','#4caf50','#29b6f6','#ab47bc','#ff9800','#ec407a','#66bb6a'][i % 8],
+        textShadow: `
+          -3px -3px 0 #000,
+           3px -3px 0 #000,
+          -3px  3px 0 #000,
+           3px  3px 0 #000
+        `,
+        filter: 'drop-shadow(0 3px 2px rgba(0,0,0,0.5))'
+      }}
+    >
+      {char}
+    </span>
+  ))}
+</span>
+
+
       
       <div className="spacer" />
       

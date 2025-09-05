@@ -38,54 +38,21 @@ export class CanvasApp {
         elementsToRender.push(this.appState.editingElement);
       }
 
-      this.renderer.render(elementsToRender, this.appState);
+      // Pass selection rectangle to renderer
+      const selectionRect = this.eventHandler.getSelectionRect();
+      this.renderer.render(elementsToRender, this.appState, selectionRect);
       requestAnimationFrame(render);
     };
     render();
   }
 
-  // Add method to update app state from React
   public updateAppState(newAppState: AppState) {
     this.appState = { ...newAppState };
     this.eventHandler.updateAppState(this.appState);
   }
 
-  // Add method to set elements from React state
   public setElements(elements: ExcalidrawElement[]) {
     this.eventHandler.setElements(elements);
-  }
-
-  public setTool(tool: string) {
-    this.appState.activeTool = tool as any;
-    this.appState.selectedElementIds = [];
-  }
-
-  public setStrokeColor(color: string) {
-    this.appState.currentItemStrokeColor = color;
-  }
-
-  public setBackgroundColor(color: string) {
-    this.appState.currentItemBackgroundColor = color;
-  }
-
-  public setFillStyle(fillStyle: 'hachure' | 'cross-hatch' | 'solid' | 'zigzag' | 'dots') {
-    this.appState.currentItemFillStyle = fillStyle;
-  }
-
-  public setStrokeWidth(width: number) {
-    this.appState.currentItemStrokeWidth = width;
-  }
-
-  public setStrokeStyle(style: 'solid' | 'dashed' | 'dotted') {
-    this.appState.currentItemStrokeStyle = style;
-  }
-
-  public setRoughness(roughness: number) {
-    this.appState.currentItemRoughness = roughness;
-  }
-
-  public setOpacity(opacity: number) {
-    this.appState.currentItemOpacity = opacity;
   }
 
   public clear() {

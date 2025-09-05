@@ -1,9 +1,8 @@
 // src/App.tsx
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { ExcalidrawCanvas, ExcalidrawCanvasRef } from './components/ExcalidrawCanvas';
 import { Toolbar } from './components/Toolbar';
 import { PropertiesPanel } from './components/PropertiesPanel';
-import { MainMenu } from './components/MainMenu';
 import { Footer } from './components/Footer';
 import { useExcalidrawState } from './hooks/useExcalidrawState';
 import './styles/excalidraw.css';
@@ -16,10 +15,16 @@ export default function App() {
     clearCanvas,
     addElement,
     updateElement,
-    deleteElements
+    deleteElements,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    setCanvasAppRef,
   } = useExcalidrawState();
 
-  const canvasRef = useRef<ExcalidrawCanvasRef>(null);
+  const canvasRef = useRef<ExcalidrawCanvasRef | null>(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   const handleToolChange = (tool: string) => {
     updateAppState({ activeTool: tool as any });
@@ -30,9 +35,8 @@ export default function App() {
   };
 
   const handleClear = () => {
-    // Clear both React state AND canvas engine state
-    clearCanvas(); // Clears React state
-    canvasRef.current?.clearCanvas(); // Clears canvas engine state
+    clearCanvas();
+    canvasRef.current?.clearCanvas();
   };
 
   const handleExport = () => {
@@ -67,21 +71,14 @@ export default function App() {
           try {
             const jsonData = e.target?.result as string;
             const data = JSON.parse(jsonData);
-            
-            // Clear both states first
             clearCanvas();
             canvasRef.current?.clearCanvas();
-            
-            // Import elements
             if (data.elements && Array.isArray(data.elements)) {
               data.elements.forEach((element: any) => addElement(element));
             }
-            
-            // Import app state
             if (data.appState) {
               updateAppState(data.appState);
             }
-            
             console.log('Import successful!');
           } catch (error) {
             console.error('Failed to import:', error);
@@ -94,50 +91,72 @@ export default function App() {
     input.click();
   };
 
-  const selectedElements = elements.filter(el => 
+  const selectedElements = elements.filter(el =>
     appState.selectedElementIds.includes(el.id)
   );
 
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="toolbar">
-          <Toolbar 
-            activeTool={appState.activeTool}
-            onToolChange={handleToolChange}
-            isToolLocked={appState.isToolLocked}
-            onToggleToolLock={handleToggleToolLock}
-          />
-          <div className="spacer" />
-          <MainMenu 
-            onClear={handleClear} 
-            onExport={handleExport} 
-            onImport={handleImport} 
-          />
+        <Toolbar
+          activeTool={appState.activeTool}
+          onToolChange={handleToolChange}
+          isToolLocked={appState.isToolLocked}
+          onToggleToolLock={handleToggleToolLock}
+        />
+        
+        {/* Hamburger Menu Button */}
+        <div className="hamburger-container">
+          <button
+            className={`hamburger-btn ${isPanelOpen ? 'active' : ''}`}
+            onClick={() => setIsPanelOpen(!isPanelOpen)}
+            aria-label="Toggle properties panel"
+          >
+            <span className="hamburger-icon">☰</span>
+          </button>
         </div>
       </div>
 
       <div className="content">
-        <ExcalidrawCanvas 
-          ref={canvasRef}
-          elements={elements}
-          appState={appState}
-          onElementsChange={() => {}}
-          onAppStateChange={updateAppState}
-        />
-        
-        <div className="sidepanel">
-          <PropertiesPanel 
-            selectedElements={selectedElements}
+        <div className="canvas-wrap">
+          <ExcalidrawCanvas
+            ref={canvasRef}
+            elements={elements}
             appState={appState}
-            onPropertyChange={updateAppState}
+            onElementsChange={() => {}}
+            onAppStateChange={updateAppState}
+            onCanvasAppReady={setCanvasAppRef}
           />
         </div>
+
+        {/* Slide-out Properties Panel */}
+        <PropertiesPanel
+          selectedElements={selectedElements}
+          appState={appState}
+          onPropertyChange={updateAppState}
+          isOpen={isPanelOpen}
+          onClose={() => setIsPanelOpen(false)}
+          onClear={handleClear}
+          onExport={handleExport}
+          onImport={handleImport}
+        />
       </div>
 
-      <Footer 
+      {/* Overlay when panel is open */}
+      {isPanelOpen && (
+        <div 
+          className="panel-overlay" 
+          onClick={() => setIsPanelOpen(false)}
+        />
+      )}
+
+      <Footer
         viewTransform={appState.viewTransform}
         selectedCount={selectedElements.length}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
     </div>
   );

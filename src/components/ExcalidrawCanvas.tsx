@@ -8,6 +8,7 @@ interface ExcalidrawCanvasProps {
   appState: AppState;
   onElementsChange: (elements: ExcalidrawElement[]) => void;
   onAppStateChange: (appState: Partial<AppState>) => void;
+  onCanvasAppReady?: (canvasApp: CanvasApp) => void;
 }
 
 export interface ExcalidrawCanvasRef {
@@ -17,8 +18,8 @@ export interface ExcalidrawCanvasRef {
 }
 
 export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvasProps>(
-  ({ appState, onAppStateChange, elements }, ref) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+  ({ appState, onAppStateChange, elements, onCanvasAppReady }, ref) => {
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const appRef = useRef<CanvasApp | null>(null);
 
     useImperativeHandle(ref, () => ({
@@ -39,28 +40,26 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
 
     useEffect(() => {
       if (canvasRef.current && !appRef.current) {
-        const rect = canvasRef.current.getBoundingClientRect();
-        canvasRef.current.width = rect.width;
-        canvasRef.current.height = rect.height;
-        
-        // Pass the appState to the CanvasApp constructor
+        // Create canvas app once
         appRef.current = new CanvasApp(canvasRef.current, appState);
+        
+        // Notify parent component that canvas app is ready
+        if (onCanvasAppReady) {
+          onCanvasAppReady(appRef.current);
+        }
 
+        // Handle resize
         const handleResize = () => {
           if (canvasRef.current && appRef.current) {
-            const rect = canvasRef.current.getBoundingClientRect();
-            canvasRef.current.width = rect.width;
-            canvasRef.current.height = rect.height;
             appRef.current.resize();
           }
         };
-
         window.addEventListener('resize', handleResize);
         return () => {
           window.removeEventListener('resize', handleResize);
         };
       }
-    }, []);
+    }, [onCanvasAppReady]);
 
     // Update canvas app state when React state changes
     useEffect(() => {
@@ -76,14 +75,22 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
       }
     }, [elements]);
 
+    // Toggle eraser cursor based on active tool
+    useEffect(() => {
+      if (!canvasRef.current) return;
+      if (appState.activeTool === 'eraser') {
+        canvasRef.current.classList.add('cursor-eraser');
+      } else {
+        canvasRef.current.classList.remove('cursor-eraser');
+      }
+    }, [appState.activeTool]);
+
     return (
-      <div className="canvas-wrap">
-        <canvas
-          ref={canvasRef}
-          className="excalidraw-canvas"
-          tabIndex={0}
-        />
-      </div>
+      <canvas
+        ref={canvasRef}
+        className="excalidraw-canvas"
+        aria-label="Excalidraw canvas"
+      />
     );
   }
 );

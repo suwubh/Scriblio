@@ -1,4 +1,5 @@
 // src/types/excalidraw.ts
+
 export interface Point {
   x: number;
   y: number;
@@ -47,6 +48,7 @@ export interface ExcalidrawElement {
   updated: number;
   link?: string;
   locked?: boolean;
+  imageData?: string; // For storing base64 image data
 }
 
 export interface AppState {
