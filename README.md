@@ -1,4 +1,5 @@
 Scriblio
+
 Overview
 
 🎨 Scriblio is a collaborative whiteboard that blends real-time CRDT-based editing (Yjs) with hybrid transport (WebRTC + WebSockets) and Redis-powered presence/pub-sub. It also includes an AI command palette for generating diagrams, summaries, and images right inside the canvas.
