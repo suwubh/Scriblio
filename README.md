@@ -1,121 +1,151 @@
+Scriblio
 Overview
 
-🎨 Scriblio is a real‑time collaborative whiteboard using CRDTs (Yjs) for conflict‑free multi‑user editing, hybrid WebRTC/WebSocket transport, and Redis for presence/pub‑sub, plus an AI command palette for diagramming and summaries.
+🎨 Scriblio is a collaborative whiteboard that blends real-time CRDT-based editing (Yjs) with hybrid transport (WebRTC + WebSockets) and Redis-powered presence/pub-sub. It also includes an AI command palette for generating diagrams, summaries, and images right inside the canvas.
 
-⚡ Built with React + TypeScript on Vite for fast local dev, HMR, and optimized production builds.
-
+⚡ Built with React + TypeScript + Vite for instant HMR, smooth local development, and optimized production builds.
 
 Demo
 
-🚀 Live demo: Coming soon...
-
-🧪 Local tryout: follow the quick start below to run with Vite’s dev server and HMR.
-
+🚀 Live demo: Coming soon
+🧪 Local tryout: See the Getting Started
+ guide below.
 
 Features
 
-🤝 Real‑time collaboration with Yjs CRDTs: eventual consistency, shared undo/redo, conflict‑free element sync.
+🤝 Real-time collaboration with Yjs CRDTs
 
-📡 Hybrid transport: WebRTC data channels for low‑latency P2P sync, with WebSockets/Redis for signaling, presence, and fallback.
+Conflict-free sync, shared undo/redo, and eventual consistency.
 
-👥 Presence and remote cursors via Redis pub/sub for lightweight awareness and horizontal scale.
+📡 Hybrid transport
 
-🧠 AI command palette: generate diagrams, canvas summaries, and inline text‑to‑image with smart auto‑layout (document supported commands here).
+Low-latency WebRTC data channels with WebSocket/Redis fallback for signaling & robustness.
 
-🕘 Session replay & versioning plus one‑click exports to PNG/PDF/JSON for shareable artifacts and auditability.
+👥 Presence & awareness
 
+Remote cursors and user presence via Redis pub/sub, horizontally scalable.
 
-Tech stack
+🧠 AI command palette
 
-🧩 Frontend: React, TypeScript, Vite (HMR, fast builds).
+Generate diagrams, summarize canvases, and create inline text-to-image with smart auto-layout.
 
-🪢 Collaboration: Yjs (CRDT), y‑webrtc / WebRTC data channels, WebSockets.
+🕘 Replay & versioning
 
-🧷 Realtime infra: Redis (pub/sub) for presence, fan‑out, and room signaling.
+Session history plus one-click exports to PNG, PDF, or JSON.
 
-🛠️ Dev/build: Vite CLI and scripts (dev/build/preview).
+Tech Stack
 
+🧩 Frontend: React, TypeScript, Vite
+
+🪢 Collaboration: Yjs (CRDT), y-webrtc, WebRTC data channels, WebSockets
+
+🧷 Realtime infra: Redis pub/sub for presence, fan-out, signaling
+
+🛠️ Tooling: Vite CLI, dev/build/preview scripts
 
 Architecture
 
-🗺️ Client keeps a Yjs document for the canvas, syncing updates over WebRTC data channels when available and using WebSockets/Redis for signaling and robustness.
+🗺️ Clients maintain a shared Yjs document; updates flow via WebRTC when possible, with WebSockets/Redis fallback.
 
-📣 Presence and room awareness are broadcast via Redis pub/sub channels to decouple publishers and subscribers and simplify horizontal scaling.
+📣 Presence & signaling handled through Redis pub/sub channels for scalable awareness.
 
-🏗️ The frontend runs on Vite for fast iteration; production assets are served by a static host or edge CDN.
+🏗️ Assets built by Vite are production-ready for serving from a static host or CDN.
+
+Getting Started
+
+Prerequisites:
+
+Node.js + npm
+
+Redis instance for presence/signaling
+
+Setup:
+
+git clone <repo-url>
+cd scriblio
+npm install
 
 
-Getting started
+Environment:
 
-Prereqs: Node.js and npm; a Redis instance for presence/signaling.
-
-
-Install: clone the repo, change into the directory, and run npm install following typical Vite workflows.
+cp .env.example .env.local
+# Set required vars: REDIS_URL, AI provider keys (prefixed with VITE_)
 
 
-Env: copy .env.example to .env.local; set REDIS_URL and any AI provider keys (client vars must be prefixed with VITE_).
+Development:
+
+npm run dev   # start Vite with HMR
 
 
-Dev: npm run dev to start the Vite server with HMR; open the printed localhost URL.
+Open the localhost URL printed in your terminal.
 
+Production build:
 
-Build/preview: npm run build, then npm run preview to verify the production build locally.
-
+npm run build
+npm run preview   # serve built app locally
 
 Environment
 
-🔐 Use .env.local with Vite’s env conventions (VITE_* for client exposure; keep secrets on the server).
+🔐 Use .env.local with Vite’s conventions (VITE_* prefix for client-side).
 
-🔧 Examples: VITE_APP_NAME, REDIS_URL, and AI_API_KEY per deployment model and security needs.
+Examples:
 
+VITE_APP_NAME
+
+REDIS_URL
+
+VITE_AI_API_KEY
 
 Scripts
 
-▶️ npm run dev — start Vite dev server with HMR for local development.
+▶️ npm run dev — Vite dev server with HMR
 
-🏗️ npm run build — create an optimized production build.
+🏗️ npm run build — optimized production build
 
-🔍 npm run preview — serve the built app locally for verification.
-
+🔍 npm run preview — preview built app locally
 
 Usage
 
-🖱️ Create or join a canvas; see remote cursors and edits in real time as Yjs syncs operations conflict‑free across peers.
+🖱️ Create or join a canvas and collaborate in real-time.
 
-✨ Use the AI palette to generate diagrams, summarize canvases, and insert text‑to‑image with auto‑layout (add prompt examples here).
+✨ Use the AI palette for diagrams, summaries, or text-to-image prompts.
 
-📤 Export canvases as PNG/PDF/JSON, and review session replay/version history to track decisions and changes.
+📤 Export canvases as PNG, PDF, or JSON; review past sessions with replay/version history.
 
+Project Structure
 
-Structure
+📂 src/ — React components, hooks, state, providers
 
-📂 Typical Vite + React + TS layout: src/ for components/state/hooks, public/ for assets; add modules for collaboration providers and presence logic.
+📂 public/ — Static assets
 
-🧭 Keep presence, transport, and AI integrations modular for easier testing and future upgrades.
-
+🧭 Collaboration, presence, and AI modules are kept modular for testing and upgrades.
 
 Contributing
 
-🤝 Contributions welcome: open issues, fork, and submit PRs; keep the README updated to match code changes.
+🤝 Contributions are welcome!
 
-📝 Consider a CONTRIBUTING.md for coding standards, commit messages, and review workflows to streamline collaboration.
+Open issues, fork the repo, and submit PRs.
 
+Keep documentation in sync with code.
+
+Consider adding a CONTRIBUTING.md for coding standards and workflows.
 
 Roadmap
 
-🔐 Auth and team canvases with invite links and role‑based permissions.
+🔐 Auth & team canvases with invites and roles
 
-💬 Persistent history, comments/mentions, notifications, and optional email/webhook integrations.
+💬 Persistent history, comments, mentions, and notifications
 
-🧠 More AI actions: auto‑layout improvements, diagram refactoring, and domain‑specific templates.
-
+🧠 Expanded AI actions: smarter auto-layout, diagram refactoring, domain templates
 
 Acknowledgements
 
-🧮 Yjs CRDTs for real‑time collaboration and shared types across clients.
+🧮 Yjs
+ for CRDT-based collaboration
 
-🌐 WebRTC data channels for low‑latency peer‑to‑peer transport.
+🌐 WebRTC data channels for P2P sync
 
-📣 Redis pub/sub for presence, fan‑out, and signaling.
+📣 Redis pub/sub for signaling and presence
 
-⚙️ Built with Vite for fast development and optimized builds.
+⚙️ Vite
+ for blazing-fast builds
