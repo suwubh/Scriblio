@@ -10,6 +10,8 @@ interface PropertiesPanelProps {
   onClear: () => void;
   onExport: () => void;
   onImport: () => void;
+  onDeleteElements: (ids: string[]) => void;
+  onUpdateElement: (id: string, updates: Partial<ExcalidrawElement>) => void;
 }
 
 export function PropertiesPanel({ 

@@ -1,0 +1,17 @@
+{
+  "name": "scriblio-signaling-server",
+  "version": "1.0.0",
+  "description": "WebRTC signaling server for Scriblio",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

@@ -1,11 +1,16 @@
 // src/components/Toolbar.tsx
-import { ToolType } from '../types/excalidraw';
+import { AppState, ToolType } from '../types/excalidraw';
 
 interface ToolbarProps {
-  activeTool: ToolType;
-  onToolChange: (tool: ToolType) => void;
+  appState: AppState;
+  activeTool: string;
   isToolLocked: boolean;
+  onToolChange: (tool: string) => void;
   onToggleToolLock: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 export function Toolbar({ activeTool, onToolChange, isToolLocked, onToggleToolLock }: ToolbarProps) {

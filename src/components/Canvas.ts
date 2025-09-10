@@ -8,6 +8,16 @@ export class CanvasApp {
   private renderer: CanvasRenderer;
   private eventHandler: EventHandler;
   private appState: AppState;
+  private animationId: number | null = null;
+
+  // Callbacks to publish engine mutations up to React
+  private onElementsMutated?: (elements: ExcalidrawElement[]) => void;
+  private onAppStateMutated?: (appState: AppState) => void;
+
+  // Lightweight change signatures to prevent feedback loops
+  private lastElementsSig = '';
+  private lastAppStateSig = '';
+  private lastElementsCount = 0;
 
   constructor(canvasElement: HTMLCanvasElement, initialAppState: AppState) {
     this.canvas = canvasElement;
@@ -16,6 +26,14 @@ export class CanvasApp {
     this.eventHandler = new EventHandler(this.canvas, this.appState);
     this.setupCanvas();
     this.startRenderLoop();
+  }
+
+  public setOnElementsMutated(cb: (elements: ExcalidrawElement[]) => void) {
+    this.onElementsMutated = cb;
+  }
+
+  public setOnAppStateMutated(cb: (appState: AppState) => void) {
+    this.onAppStateMutated = cb;
   }
 
   private setupCanvas() {
@@ -33,39 +51,90 @@ export class CanvasApp {
     const render = () => {
       const elements = this.eventHandler.getElements();
       const elementsToRender = [...elements];
-      
+
       if (this.appState.editingElement) {
         elementsToRender.push(this.appState.editingElement);
       }
 
-      // Pass selection rectangle to renderer
       const selectionRect = this.eventHandler.getSelectionRect();
       this.renderer.render(elementsToRender, this.appState, selectionRect);
-      requestAnimationFrame(render);
+
+      // Only publish significant element changes
+      const hasElementsChanged = this.hasElementsChanged(elements);
+      if (hasElementsChanged && this.onElementsMutated) {
+        const deepCopy = JSON.parse(JSON.stringify(elements)) as ExcalidrawElement[];
+        this.onElementsMutated(deepCopy);
+      }
+
+      // Publish appState changes (view transform, selection, etc.)
+      const appSig = this.generateAppStateSignature(this.appState);
+      if (appSig !== this.lastAppStateSig && this.onAppStateMutated) {
+        this.lastAppStateSig = appSig;
+        this.onAppStateMutated({ ...this.appState });
+      }
+
+      this.animationId = requestAnimationFrame(render);
     };
     render();
+  }
+
+  private hasElementsChanged(elements: ExcalidrawElement[]): boolean {
+    // Check if elements count changed
+    if (elements.length !== this.lastElementsCount) {
+      this.lastElementsCount = elements.length;
+      this.lastElementsSig = this.generateElementsSignature(elements);
+      return true;
+    }
+
+    // Check for meaningful changes in existing elements
+    const currentSig = this.generateElementsSignature(elements);
+    if (currentSig !== this.lastElementsSig) {
+      this.lastElementsSig = currentSig;
+      return true;
+    }
+
+    return false;
+  }
+
+  private generateElementsSignature(elements: ExcalidrawElement[]): string {
+    return elements
+      .map(el => `${el.id}:${el.x}:${el.y}:${el.width}:${el.height}:${el.updated}`)
+      .join('|');
+  }
+
+  private generateAppStateSignature(appState: AppState): string {
+    return `${appState.viewTransform.x}:${appState.viewTransform.y}:${appState.viewTransform.zoom}:${appState.selectedElementIds.join(',')}`;
   }
 
   public updateAppState(newAppState: AppState) {
     this.appState = { ...newAppState };
     this.eventHandler.updateAppState(this.appState);
+    this.lastAppStateSig = this.generateAppStateSignature(this.appState);
   }
 
   public setElements(elements: ExcalidrawElement[]) {
     this.eventHandler.setElements(elements);
+    this.lastElementsCount = elements.length;
+    this.lastElementsSig = this.generateElementsSignature(elements);
   }
 
   public clear() {
     this.eventHandler.clearElements();
+    this.lastElementsCount = 0;
+    this.lastElementsSig = '';
   }
 
   public exportToJSON(): string {
-    return JSON.stringify({
-      elements: this.eventHandler.getElements(),
-      appState: {
-        viewTransform: this.appState.viewTransform
-      }
-    }, null, 2);
+    return JSON.stringify(
+      {
+        elements: this.eventHandler.getElements(),
+        appState: {
+          viewTransform: this.appState.viewTransform,
+        },
+      },
+      null,
+      2
+    );
   }
 
   public importFromJSON(json: string) {
@@ -73,10 +142,14 @@ export class CanvasApp {
       const data = JSON.parse(json);
       if (data.elements && Array.isArray(data.elements)) {
         this.eventHandler.setElements(data.elements);
+        this.lastElementsCount = data.elements.length;
+        this.lastElementsSig = this.generateElementsSignature(data.elements);
       }
+
       if (data.appState) {
         this.updateAppState({ ...this.appState, ...data.appState });
       }
+
       console.log('Canvas import successful!');
     } catch (error) {
       console.error('Failed to import JSON in canvas:', error);
@@ -91,7 +164,10 @@ export class CanvasApp {
     return this.appState;
   }
 
-  public getEventHandler(): EventHandler {
-    return this.eventHandler;
+  public destroy() {
+    if (this.animationId !== null) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
   }
 }

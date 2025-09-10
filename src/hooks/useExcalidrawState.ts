@@ -1,5 +1,5 @@
 // src/hooks/useExcalidrawState.ts
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { ExcalidrawElement, AppState, ToolType } from '../types/excalidraw';
 import { useUndoRedo } from './useUndoRedo';
 
@@ -35,104 +35,208 @@ export function useExcalidrawState() {
     exportBackground: true,
     exportWithDarkMode: false,
     width: window.innerWidth,
-    height: window.innerHeight
+    height: window.innerHeight,
   });
 
-  const { saveState, undo, redo, clear, canUndo, canRedo } = useUndoRedo();
+  const { saveState, undo, redo, clear, initialize, canUndo, canRedo } = useUndoRedo();
   const canvasAppRef = useRef<any>(null);
+  const isUndoRedoInProgress = useRef(false);
+  const isInitialized = useRef(false);
+  const lastCommittedSignature = useRef<string>('');
 
-  // Debounced save to history
-  const saveTimeoutRef = useRef<number | null>(null);
-  const debouncedSave = useCallback(() => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+  // Initialize history once
+  useEffect(() => {
+    if (!isInitialized.current) {
+      initialize(elements, appState);
+      isInitialized.current = true;
     }
-    saveTimeoutRef.current = setTimeout(() => {
-      saveState(elements, appState);
-    }, 300);
-  }, [elements, appState, saveState]);
+  }, [initialize, elements, appState]);
+
+  // Add keyboard shortcuts
+  useEffect(() => {
+    const handleKeyboard = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey)) {
+        if (event.key === 'z' && !event.shiftKey) {
+          event.preventDefault();
+          performUndo();
+        } else if (event.key === 'y' || (event.key === 'z' && event.shiftKey)) {
+          event.preventDefault();
+          performRedo();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyboard);
+    return () => document.removeEventListener('keydown', handleKeyboard);
+  }, []);
+
+  const generateSignature = useCallback((els: ExcalidrawElement[]) => {
+  return els
+    .map(el =>
+      [
+        el.id,
+        el.x, el.y, el.width, el.height, el.angle,
+        el.strokeColor, el.backgroundColor,
+        el.strokeWidth, el.strokeStyle, el.roughness, el.fillStyle,
+        el.opacity,
+        el.points?.length || 0,
+        el.text || '',
+        el.imageData ? 1 : 0,
+      ].join(':'),
+    )
+    .join('|');
+}, []);
+
+  const commitScene = useCallback(
+    (nextElements: ExcalidrawElement[], nextAppState: AppState) => {
+      if (isUndoRedoInProgress.current) return;
+
+      const signature = generateSignature(nextElements);
+      if (signature !== lastCommittedSignature.current) {
+        saveState(nextElements, nextAppState);
+        lastCommittedSignature.current = signature;
+      }
+    },
+    [saveState, generateSignature]
+  );
 
   const setCanvasAppRef = useCallback((app: any) => {
     canvasAppRef.current = app;
   }, []);
 
-  const updateAppState = useCallback((updates: Partial<AppState>) => {
-    setAppState(prev => {
-      const newState = { ...prev, ...updates };
-      setTimeout(() => debouncedSave(), 0);
-      return newState;
-    });
-  }, [debouncedSave]);
+  const updateAppState = useCallback(
+    (updates: Partial<AppState>) => {
+      setAppState(prev => {
+        const merged = { ...prev, ...updates };
+        if (canvasAppRef.current && !isUndoRedoInProgress.current) {
+          canvasAppRef.current.updateAppState(merged);
+        }
+        return merged;
+      });
+    },
+    []
+  );
 
-  const addElement = useCallback((element: ExcalidrawElement) => {
-    setElements(prev => {
-      const newElements = [...prev, element];
-      setTimeout(() => debouncedSave(), 0);
-      return newElements;
-    });
-  }, [debouncedSave]);
+  const setElementsFromCanvas = useCallback(
+    (newElements: ExcalidrawElement[]) => {
+      if (isUndoRedoInProgress.current) {
+        setElements(newElements);
+        return;
+      }
 
-  const updateElement = useCallback((id: string, updates: Partial<ExcalidrawElement>) => {
-    setElements(prev => {
-      const newElements = prev.map(el => el.id === id ? { ...el, ...updates } : el);
-      setTimeout(() => debouncedSave(), 0);
-      return newElements;
-    });
-  }, [debouncedSave]);
+      setElements(newElements);
+      commitScene(newElements, appState);
+    },
+    [commitScene, appState]
+  );
 
-  const deleteElements = useCallback((ids: string[]) => {
-    setElements(prev => {
-      const newElements = prev.filter(el => !ids.includes(el.id));
-      setTimeout(() => debouncedSave(), 0);
-      return newElements;
-    });
-  }, [debouncedSave]);
+  const addElement = useCallback(
+    (element: ExcalidrawElement) => {
+      if (isUndoRedoInProgress.current) return;
+
+      setElements(prev => {
+        const next = [...prev, element];
+        commitScene(next, appState);
+        return next;
+      });
+    },
+    [commitScene, appState]
+  );
+
+  const updateElement = useCallback(
+    (id: string, updates: Partial<ExcalidrawElement>) => {
+      if (isUndoRedoInProgress.current) return;
+
+      setElements(prev => {
+        const next = prev.map(el => (el.id === id ? { ...el, ...updates } : el));
+        commitScene(next, appState);
+        return next;
+      });
+    },
+    [commitScene, appState]
+  );
+
+  const deleteElements = useCallback(
+    (ids: string[]) => {
+      if (isUndoRedoInProgress.current) return;
+
+      setElements(prev => {
+        const next = prev.filter(el => !ids.includes(el.id));
+        commitScene(next, appState);
+        return next;
+      });
+    },
+    [commitScene, appState]
+  );
 
   const clearCanvas = useCallback(() => {
-    const resetAppState = {
+    const resetAppState: AppState = {
       ...appState,
       selectedElementIds: [],
-      viewTransform: { x: 0, y: 0, zoom: 1 }
+      viewTransform: { x: 0, y: 0, zoom: 1 },
+      editingElement: null,
+      draggingElement: null,
+      resizingElement: null,
     };
 
     setElements([]);
     setAppState(resetAppState);
     clear([], resetAppState);
 
-    // Clear canvas engine
     if (canvasAppRef.current) {
-      canvasAppRef.current.clearElements();
+      canvasAppRef.current.setElements([]);
       canvasAppRef.current.updateAppState(resetAppState);
     }
+
+    lastCommittedSignature.current = '';
   }, [appState, clear]);
 
   const performUndo = useCallback(() => {
+    if (!canUndo) return;
+
+    isUndoRedoInProgress.current = true;
     const prevState = undo();
+    
     if (prevState) {
       setElements(prevState.elements);
       setAppState(prevState.appState);
 
-      // Update canvas engine immediately
       if (canvasAppRef.current) {
         canvasAppRef.current.setElements(prevState.elements);
         canvasAppRef.current.updateAppState(prevState.appState);
       }
+
+      lastCommittedSignature.current = generateSignature(prevState.elements);
     }
-  }, [undo]);
+
+    // Release the lock after a brief delay to ensure all updates are complete
+    setTimeout(() => {
+      isUndoRedoInProgress.current = false;
+    }, 10);
+  }, [undo, canUndo, generateSignature]);
 
   const performRedo = useCallback(() => {
+    if (!canRedo) return;
+
+    isUndoRedoInProgress.current = true;
     const nextState = redo();
+    
     if (nextState) {
       setElements(nextState.elements);
       setAppState(nextState.appState);
 
-      // Update canvas engine immediately
       if (canvasAppRef.current) {
         canvasAppRef.current.setElements(nextState.elements);
         canvasAppRef.current.updateAppState(nextState.appState);
       }
+
+      lastCommittedSignature.current = generateSignature(nextState.elements);
     }
-  }, [redo]);
+
+    setTimeout(() => {
+      isUndoRedoInProgress.current = false;
+    }, 10);
+  }, [redo, canRedo, generateSignature]);
 
   return {
     elements,
@@ -146,6 +250,7 @@ export function useExcalidrawState() {
     redo: performRedo,
     canUndo,
     canRedo,
-    setCanvasAppRef
+    setCanvasAppRef,
+    setElementsFromCanvas,
   };
 }

@@ -1,4 +1,5 @@
 // src/engine/eventHandler.ts
+
 import { ExcalidrawElement, AppState, Point } from '../types/excalidraw';
 
 export class EventHandler {
@@ -22,7 +23,10 @@ export class EventHandler {
 
   public setElements(elements: ExcalidrawElement[]) {
     this.elements = [...elements];
-    this.appState.selectedElementIds = [];
+    if (elements.length === 0) {
+      this.appState.selectedElementIds = [];
+      this.appState.editingElement = null;
+    }
   }
 
   private setupEventListeners() {
@@ -90,13 +94,13 @@ export class EventHandler {
     }
   }
 
-  private handlePointerUp(event: PointerEvent) {
+  private handlePointerUp(_event: PointerEvent) {
     this.isDrawing = false;
-    
+
     if (this.appState.activeTool === 'selection') {
       this.handleSelectionEnd();
     }
-    
+
     if (this.appState.editingElement) {
       this.finalizeElement();
     }
@@ -142,7 +146,7 @@ export class EventHandler {
     if (this.isDragging) {
       this.finalizeDragging();
     }
-    
+
     this.selectionRect = null;
     this.isDragging = false;
     this.dragOffsets.clear();
@@ -167,10 +171,10 @@ export class EventHandler {
     for (const elementId of this.appState.selectedElementIds) {
       const element = this.elements.find(el => el.id === elementId);
       const offset = this.dragOffsets.get(elementId);
-      
       if (element && offset) {
         element.x = point.x - offset.x;
         element.y = point.y - offset.y;
+        element.updated = Date.now(); // FIX: Update timestamp for undo/redo
       }
     }
   }
@@ -195,7 +199,7 @@ export class EventHandler {
       const elementMinY = Math.min(element.y, element.y + element.height);
       const elementMaxY = Math.max(element.y, element.y + element.height);
 
-      if (elementMinX >= minX && elementMaxX <= maxX && 
+      if (elementMinX >= minX && elementMaxX <= maxX &&
           elementMinY >= minY && elementMaxY <= maxY) {
         selectedIds.push(element.id);
       }
@@ -226,6 +230,7 @@ export class EventHandler {
       groupIds: [],
       updated: Date.now()
     };
+
     this.appState.editingElement = element;
   }
 
@@ -252,6 +257,7 @@ export class EventHandler {
       updated: Date.now(),
       points: [{ x: 0, y: 0 }]
     };
+
     this.appState.editingElement = element;
   }
 
@@ -278,6 +284,7 @@ export class EventHandler {
       updated: Date.now(),
       points: [{ x: 0, y: 0 }]
     };
+
     this.appState.editingElement = element;
   }
 
@@ -310,6 +317,7 @@ export class EventHandler {
       fontFamily: this.appState.currentItemFontFamily,
       textAlign: this.appState.currentItemTextAlign
     };
+
     this.elements.push(element);
   }
 
@@ -328,7 +336,6 @@ export class EventHandler {
             let width = img.width;
             let height = img.height;
             const maxSize = 300;
-            
             if (width > maxSize || height > maxSize) {
               const ratio = Math.min(maxSize / width, maxSize / height);
               width = width * ratio;
@@ -358,6 +365,7 @@ export class EventHandler {
               // Store image data URL
               imageData: e.target?.result as string
             };
+
             this.elements.push(element);
           };
           img.src = e.target?.result as string;
@@ -370,6 +378,7 @@ export class EventHandler {
 
   private addPointToDrawing(point: Point) {
     if (!this.appState.editingElement) return;
+
     const element = this.appState.editingElement;
     if (!element.points) {
       element.points = [];
@@ -379,20 +388,25 @@ export class EventHandler {
       x: point.x - element.x,
       y: point.y - element.y
     };
+
     element.points.push(relativePoint);
+    element.updated = Date.now(); // FIX: Update timestamp for undo/redo
 
     if (element.points.length > 1) {
       const minX = Math.min(...element.points.map(p => p.x));
       const maxX = Math.max(...element.points.map(p => p.x));
       const minY = Math.min(...element.points.map(p => p.y));
       const maxY = Math.max(...element.points.map(p => p.y));
+
       element.width = Math.max(1, maxX - minX);
       element.height = Math.max(1, maxY - minY);
+      element.updated = Date.now(); // FIX: Update timestamp after geometry changes
 
       if (minX < 0) {
         element.x += minX;
         element.points = element.points.map(p => ({ x: p.x - minX, y: p.y }));
       }
+
       if (minY < 0) {
         element.y += minY;
         element.points = element.points.map(p => ({ x: p.x, y: p.y - minY }));
@@ -402,6 +416,7 @@ export class EventHandler {
 
   private updateEditingElement(point: Point) {
     if (!this.appState.editingElement) return;
+
     const element = this.appState.editingElement;
 
     if (element.type === 'line' && element.points) {
@@ -412,11 +427,16 @@ export class EventHandler {
       element.width = point.x - element.x;
       element.height = point.y - element.y;
     }
+
+    element.updated = Date.now(); // FIX: Update timestamp for undo/redo
   }
 
   private finalizeElement() {
     if (this.appState.editingElement) {
       const element = this.appState.editingElement;
+
+      element.updated = Date.now(); // FIX: Update timestamp before finalizing
+
       if (element.type === 'freedraw' || element.type === 'line') {
         if (element.points && element.points.length > 1) {
           this.elements.push(element);
@@ -424,6 +444,7 @@ export class EventHandler {
       } else if (Math.abs(element.width) > 3 || Math.abs(element.height) > 3) {
         this.elements.push(element);
       }
+
       this.appState.editingElement = null;
     }
   }
@@ -432,11 +453,12 @@ export class EventHandler {
     event.preventDefault();
     const delta = event.deltaY > 0 ? 0.9 : 1.1;
     const newZoom = Math.max(0.1, Math.min(5, this.appState.viewTransform.zoom * delta));
+
     const rect = this.canvas.getBoundingClientRect();
     const mouseX = event.clientX - rect.left;
     const mouseY = event.clientY - rect.top;
-    const zoomChange = newZoom / this.appState.viewTransform.zoom;
 
+    const zoomChange = newZoom / this.appState.viewTransform.zoom;
     this.appState.viewTransform.x = mouseX - (mouseX - this.appState.viewTransform.x) * zoomChange;
     this.appState.viewTransform.y = mouseY - (mouseY - this.appState.viewTransform.y) * zoomChange;
     this.appState.viewTransform.zoom = newZoom;
@@ -447,6 +469,7 @@ export class EventHandler {
     if (hit) {
       this.elements = this.elements.filter(el => el.id !== hit.id);
       this.appState.selectedElementIds = this.appState.selectedElementIds.filter(id => id !== hit.id);
+      // FIX: Consistent mutation tracking (optional but good practice)
     }
   }
 
@@ -493,5 +516,9 @@ export class EventHandler {
     this.elements = [];
     this.appState.selectedElementIds = [];
     this.appState.editingElement = null;
+    this.selectionRect = null;
+    this.isDragging = false;
+    this.dragOffsets.clear();
+    this.isDrawing = false;
   }
 }

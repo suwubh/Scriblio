@@ -1,98 +1,143 @@
 // src/components/ExcalidrawCanvas.tsx
-import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { CanvasApp } from './Canvas';
-import { ExcalidrawElement, AppState } from '../types/excalidraw';
+import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
+import { CanvasApp } from './Canvas'
+import { ExcalidrawElement, AppState } from '../types/excalidraw'
+import { usePresence } from '../collaboration'
 
 interface ExcalidrawCanvasProps {
-  elements: ExcalidrawElement[];
-  appState: AppState;
-  onElementsChange: (elements: ExcalidrawElement[]) => void;
-  onAppStateChange: (appState: Partial<AppState>) => void;
-  onCanvasAppReady?: (canvasApp: CanvasApp) => void;
+  elements: ExcalidrawElement[]
+  appState: AppState
+  onElementsChange: (elements: ExcalidrawElement[]) => void
+  onAppStateChange: (appState: Partial<AppState>) => void
+  onCanvasAppReady?: (canvasApp: CanvasApp) => void
 }
 
 export interface ExcalidrawCanvasRef {
-  clearCanvas: () => void;
-  exportToJSON: () => string;
-  importFromJSON: (json: string) => void;
+  clearCanvas: () => void
+  exportToJSON: () => string
+  importFromJSON: (json: string) => void
 }
 
 export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvasProps>(
-  ({ appState, onAppStateChange, elements, onCanvasAppReady }, ref) => {
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const appRef = useRef<CanvasApp | null>(null);
+  ({ appState, onAppStateChange, elements, onElementsChange, onCanvasAppReady }, ref) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null)
+    const appRef = useRef<CanvasApp | null>(null)
+    
+    // Add collaboration hooks
+    const { users, updateCursor } = usePresence()
 
     useImperativeHandle(ref, () => ({
       clearCanvas: () => {
-        if (appRef.current) {
-          appRef.current.clear();
-        }
+        if (appRef.current) appRef.current.clear()
       },
-      exportToJSON: () => {
-        return appRef.current?.exportToJSON() || '{}';
-      },
+      exportToJSON: () => appRef.current?.exportToJSON() || '{}',
       importFromJSON: (json: string) => {
-        if (appRef.current) {
-          appRef.current.importFromJSON(json);
-        }
-      }
-    }));
+        if (appRef.current) appRef.current.importFromJSON(json)
+      },
+    }))
 
     useEffect(() => {
       if (canvasRef.current && !appRef.current) {
-        // Create canvas app once
-        appRef.current = new CanvasApp(canvasRef.current, appState);
-        
-        // Notify parent component that canvas app is ready
-        if (onCanvasAppReady) {
-          onCanvasAppReady(appRef.current);
-        }
+        appRef.current = new CanvasApp(canvasRef.current, appState)
 
-        // Handle resize
-        const handleResize = () => {
-          if (canvasRef.current && appRef.current) {
-            appRef.current.resize();
-          }
-        };
-        window.addEventListener('resize', handleResize);
-        return () => {
-          window.removeEventListener('resize', handleResize);
-        };
+        // Wire engine -> React
+        appRef.current.setOnElementsMutated((els) => onElementsChange(els))
+        appRef.current.setOnAppStateMutated((st) => onAppStateChange(st))
+
+        if (onCanvasAppReady) onCanvasAppReady(appRef.current)
+
+        const handleResize = () => appRef.current?.resize()
+        window.addEventListener('resize', handleResize)
+
+        return () => window.removeEventListener('resize', handleResize)
       }
-    }, [onCanvasAppReady]);
+    }, [appState, onAppStateChange, onElementsChange, onCanvasAppReady])
 
-    // Update canvas app state when React state changes
+    // React -> engine sync
     useEffect(() => {
-      if (appRef.current) {
-        appRef.current.updateAppState(appState);
-      }
-    }, [appState]);
+      appRef.current?.updateAppState(appState as AppState)
+    }, [appState])
 
-    // Sync elements between React state and canvas engine
     useEffect(() => {
-      if (appRef.current && elements !== undefined) {
-        appRef.current.setElements(elements);
-      }
-    }, [elements]);
+      if (elements !== undefined) appRef.current?.setElements(elements)
+    }, [elements])
 
-    // Toggle eraser cursor based on active tool
     useEffect(() => {
-      if (!canvasRef.current) return;
+      if (!canvasRef.current) return
+
       if (appState.activeTool === 'eraser') {
-        canvasRef.current.classList.add('cursor-eraser');
+        canvasRef.current.classList.add('cursor-eraser')
       } else {
-        canvasRef.current.classList.remove('cursor-eraser');
+        canvasRef.current.classList.remove('cursor-eraser')
       }
-    }, [appState.activeTool]);
+    }, [appState.activeTool])
+
+    // Add cursor tracking for collaboration
+    const handleMouseMove = (e: React.MouseEvent) => {
+      const rect = canvasRef.current?.getBoundingClientRect()
+      if (rect) {
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+        updateCursor(x, y)
+      }
+    }
+
+    // Render remote cursors overlay
+    const renderRemoteCursors = () => {
+      return users.map(user => {
+        if (!user.cursor) return null
+        
+        return (
+          <div
+            key={user.userId}
+            style={{
+              position: 'absolute',
+              left: user.cursor.x - 8,
+              top: user.cursor.y - 8,
+              width: '16px',
+              height: '16px',
+              borderRadius: '50%',
+              backgroundColor: user.color,
+              pointerEvents: 'none',
+              zIndex: 1000,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+            }}
+          >
+            <div style={{
+              position: 'absolute',
+              left: '20px',
+              top: '-8px',
+              backgroundColor: user.color,
+              color: 'white',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontSize: '10px',
+              whiteSpace: 'nowrap'
+            }}>
+              {user.name}
+            </div>
+          </div>
+        )
+      })
+    }
 
     return (
-      <canvas
-        ref={canvasRef}
-        className="excalidraw-canvas"
-        aria-label="Excalidraw canvas"
-      />
-    );
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <canvas
+          ref={canvasRef}
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'block',
+            touchAction: 'none'
+          }}
+          onMouseMove={handleMouseMove}
+        />
+        {/* Render remote user cursors */}
+        {renderRemoteCursors()}
+      </div>
+    )
   }
-);
+)
 
-ExcalidrawCanvas.displayName = 'ExcalidrawCanvas';
+ExcalidrawCanvas.displayName = 'ExcalidrawCanvas'
