@@ -7,15 +7,11 @@ export const ConnectionStatus: React.FC = () => {
   
   return (
     <div style={{ 
-      position: 'fixed', 
-      top: 10, 
-      right: 10, 
       padding: '8px 12px',
       borderRadius: '8px',
       backgroundColor: isConnected ? '#4CAF50' : '#f44336',
       color: 'white',
       fontSize: '12px',
-      zIndex: 1000,
       display: 'flex',
       alignItems: 'center',
       gap: '8px',

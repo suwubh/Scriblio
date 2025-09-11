@@ -22,7 +22,7 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
   ({ appState, onAppStateChange, elements, onElementsChange, onCanvasAppReady }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const appRef = useRef<CanvasApp | null>(null)
-    
+
     // Add collaboration hooks
     const { users, updateCursor } = usePresence()
 
@@ -38,28 +38,52 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
 
     useEffect(() => {
       if (canvasRef.current && !appRef.current) {
-        appRef.current = new CanvasApp(canvasRef.current, appState)
+        console.log('🎨 Initializing CanvasApp...')
+        
+        try {
+          appRef.current = new CanvasApp(canvasRef.current, appState)
 
-        // Wire engine -> React
-        appRef.current.setOnElementsMutated((els) => onElementsChange(els))
-        appRef.current.setOnAppStateMutated((st) => onAppStateChange(st))
+          // Wire engine -> React
+          appRef.current.setOnElementsMutated((els) => onElementsChange(els))
+          appRef.current.setOnAppStateMutated((st) => onAppStateChange(st))
 
-        if (onCanvasAppReady) onCanvasAppReady(appRef.current)
+          // ✅ Notify parent that canvas app is ready
+          if (onCanvasAppReady) {
+            console.log('📡 Notifying parent that CanvasApp is ready')
+            onCanvasAppReady(appRef.current)
+          }
 
-        const handleResize = () => appRef.current?.resize()
-        window.addEventListener('resize', handleResize)
+          console.log('✅ CanvasApp initialized successfully')
 
-        return () => window.removeEventListener('resize', handleResize)
+          const handleResize = () => {
+          if (appRef.current) {
+          appRef.current.resize()
+          }
+        }
+      
+         // Initial resize
+          handleResize()
+      
+          window.addEventListener('resize', handleResize)
+
+          return () => window.removeEventListener('resize', handleResize)
+        } catch (error) {
+          console.error('❌ Failed to initialize CanvasApp:', error)
+        }
       }
     }, [appState, onAppStateChange, onElementsChange, onCanvasAppReady])
 
     // React -> engine sync
     useEffect(() => {
-      appRef.current?.updateAppState(appState as AppState)
+      if (appRef.current && typeof appRef.current.updateAppState === 'function') {
+        appRef.current.updateAppState(appState as AppState)
+      }
     }, [appState])
 
     useEffect(() => {
-      if (elements !== undefined) appRef.current?.setElements(elements)
+      if (elements !== undefined && appRef.current && typeof appRef.current.setElements === 'function') {
+        appRef.current.setElements(elements)
+      }
     }, [elements])
 
     useEffect(() => {
@@ -86,7 +110,7 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
     const renderRemoteCursors = () => {
       return users.map(user => {
         if (!user.cursor) return null
-        
+
         return (
           <div
             key={user.userId}

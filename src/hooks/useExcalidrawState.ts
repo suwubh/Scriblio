@@ -101,21 +101,33 @@ export function useExcalidrawState() {
   );
 
   const setCanvasAppRef = useCallback((app: any) => {
-    canvasAppRef.current = app;
-  }, []);
+  console.log('📌 Setting canvas app ref:', !!app)
+  canvasAppRef.current = app
+}, []);
 
   const updateAppState = useCallback(
-    (updates: Partial<AppState>) => {
-      setAppState(prev => {
-        const merged = { ...prev, ...updates };
-        if (canvasAppRef.current && !isUndoRedoInProgress.current) {
-          canvasAppRef.current.updateAppState(merged);
-        }
-        return merged;
-      });
-    },
-    []
-  );
+  (updates: Partial<AppState>) => {
+    console.log('🔄 updateAppState called with:', Object.keys(updates))
+    console.log('📱 canvasAppRef.current:', !!canvasAppRef.current)
+    
+    setAppState(prev => {
+      const merged = { ...prev, ...updates }
+      
+      // ✅ Add proper null check and method verification
+      if (canvasAppRef.current && 
+          typeof canvasAppRef.current.updateAppState === 'function' && 
+          !isUndoRedoInProgress.current) {
+        console.log('✅ Calling canvasAppRef.current.updateAppState')
+        canvasAppRef.current.updateAppState(merged)
+      } else {
+        console.log('⏳ Skipping canvas update - not ready yet')
+      }
+
+      return merged
+    })
+  },
+  []
+);
 
   const setElementsFromCanvas = useCallback(
     (newElements: ExcalidrawElement[]) => {

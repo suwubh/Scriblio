@@ -7,7 +7,7 @@ import { Footer } from './components/Footer'
 import { useExcalidrawState } from './hooks/useExcalidrawState'
 import { CollaborationProvider, PresenceProvider } from './collaboration'
 import { generateUserId, generateUserColor } from './collaboration'
-import { ConnectionStatus } from './components/ConnectionStatus' // We'll create this
+import { ConnectionStatus } from './components/ConnectionStatus'
 import './styles/excalidraw.css'
 import { AppState } from './types/excalidraw'
 
@@ -106,69 +106,118 @@ function AppContent() {
   )
 
   return (
-    <div className="excalidraw-app">
-      {/* Connection Status Indicator */}
-      <ConnectionStatus />
-      
-      {/* Hamburger Menu Button */}
-      <button 
-        className="hamburger-menu"
-        onClick={() => setIsPanelOpen(!isPanelOpen)}
-        aria-label="Toggle properties panel"
-      >
-        ☰
-      </button>
-
-      {/* Main Canvas Area */}
-      <ExcalidrawCanvas
-        ref={(ref) => {
-          canvasRef.current = ref;
-          if (ref) setCanvasAppRef(ref);
-        }}
-        elements={elements}
-        appState={appState}
-        onAppStateChange={updateAppState}
-        onElementsChange={setElementsFromCanvas}
-      />
-
+    <div className="app-shell">
+  <div className="topbar">
+    {/* Left: tools */}
+    <div className="topbar-left">
       <Toolbar
         appState={appState}
+        activeTool={appState.activeTool}
+        isToolLocked={appState.isToolLocked}
         onToolChange={handleToolChange}
         onToggleToolLock={handleToggleToolLock}
         onUndo={undo}
         onRedo={redo}
         canUndo={canUndo}
-        canRedo={canRedo} activeTool={''} isToolLocked={false}      />
+        canRedo={canRedo}
+      />
+    </div>
+
+    {/* Center: Scriblio title */}
+    <div className="topbar-title" aria-hidden="true">
+      {['S','c','r','i','b','l','i','o'].map((char, i) => (
+        <span
+          key={i}
+          style={{
+            color: ['#ff5252','#ffca28','#4caf50','#29b6f6','#ab47bc','#ff9800','#ec407a','#66bb6a'][i % 8],
+            textShadow: `
+              -3px -3px 0 #000,
+               3px -3px 0 #000,
+              -3px  3px 0 #000,
+               3px  3px 0 #000
+            `,
+            filter: 'drop-shadow(0 3px 2px rgba(0,0,0,0.5))'
+          }}
+        >
+          {char}
+        </span>
+      ))}
+    </div>
+
+    {/* Right: lock + connection + menu */}
+    <div className="topbar-right">
+      <button
+        className={`tool-btn lock-btn ${appState.isToolLocked ? 'active' : ''}`}
+        onClick={handleToggleToolLock}
+        title="Lock tool"
+        aria-label="Lock tool"
+      >
+        🔒
+      </button>
+
+      <ConnectionStatus />
+
+      <div className="hamburger-container">
+        <button
+          className={`hamburger-btn ${isPanelOpen ? 'active' : ''}`}
+          onClick={() => setIsPanelOpen(!isPanelOpen)}
+          aria-label="Toggle properties panel"
+        >
+          <span className="hamburger-icon">☰</span>
+          Menu
+        </button>
+      </div>
+    </div>
+  </div>
+  
+      {/* Main Content Area */}
+      <div className="content">
+        <div className="canvas-wrap">
+          <ExcalidrawCanvas
+            ref={canvasRef}
+            elements={elements}
+            appState={appState}
+            onElementsChange={setElementsFromCanvas}
+            onAppStateChange={updateAppState}
+            onCanvasAppReady={(canvasApp) => {
+              console.log('🎯 Canvas app ready callback fired')
+              setCanvasAppRef(canvasApp)
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Footer */}
+      <Footer
+        viewTransform={appState.viewTransform}
+        selectedCount={appState.selectedElementIds.length}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+      />
 
       {/* Slide-out Properties Panel */}
       <PropertiesPanel
-        isOpen={isPanelOpen}
         selectedElements={selectedElements}
         appState={appState}
-        onUpdateElement={updateElement}
-        onDeleteElements={deleteElements}
+        isOpen={isPanelOpen}
         onClose={() => setIsPanelOpen(false)}
         onClear={handleClear}
         onExport={handleExport}
-        onImport={handleImport} onPropertyChange={(updates: Partial<AppState>) => updateAppState(updates)} />
+        onImport={handleImport}
+        onDeleteElements={deleteElements}
+        onUpdateElement={updateElement}
+        onPropertyChange={(updates: Partial<AppState>) => updateAppState(updates)}
+      />
 
-      {/* Overlay when panel is open */}
+      {/* Panel Overlay */}
       {isPanelOpen && (
-        <div 
+        <div
           className="panel-overlay"
           onClick={() => setIsPanelOpen(false)}
         />
       )}
-
-      <Footer viewTransform={{
-        x: 0,
-        y: 0,
-        zoom: 0
-      }} selectedCount={0} onUndo={function (): void {
-        throw new Error('Function not implemented.')
-      } } onRedo={function (): void {
-        throw new Error('Function not implemented.')
-      } } canUndo={false} canRedo={false} />
     </div>
   )
 }
@@ -180,7 +229,7 @@ export default function App() {
     userName,
     redisWsUrl: import.meta.env.VITE_REDIS_WS_URL,
     websocketUrl: import.meta.env.VITE_WEBSOCKET_URL,
-    signaling: import.meta.env.VITE_SIGNALING_URLS?.split(','), // ✅ Now using your server
+    signaling: import.meta.env.VITE_SIGNALING_URLS?.split(','),
   }
 
   return (

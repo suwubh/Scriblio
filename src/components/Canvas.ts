@@ -37,15 +37,29 @@ export class CanvasApp {
   }
 
   private setupCanvas() {
-    const dpr = window.devicePixelRatio || 1;
-    const rect = this.canvas.getBoundingClientRect();
-    this.canvas.width = rect.width * dpr;
-    this.canvas.height = rect.height * dpr;
-    const ctx = this.canvas.getContext('2d')!;
-    ctx.scale(dpr, dpr);
-    this.canvas.style.width = rect.width + 'px';
-    this.canvas.style.height = rect.height + 'px';
-  }
+  const dpr = window.devicePixelRatio || 1;
+  
+  // Get actual container size
+  const container = this.canvas.parentElement;
+  if (!container) return;
+  
+  const rect = container.getBoundingClientRect();
+  
+  // Set canvas size
+  this.canvas.width = rect.width * dpr;
+  this.canvas.height = rect.height * dpr;
+  
+  const ctx = this.canvas.getContext('2d')!;
+  ctx.scale(dpr, dpr);
+  
+  // Set CSS size
+  this.canvas.style.width = rect.width + 'px';
+  this.canvas.style.height = rect.height + 'px';
+  
+  // Update app state dimensions
+  this.appState.width = rect.width;
+  this.appState.height = rect.height;
+}
 
   private startRenderLoop() {
     const render = () => {
@@ -158,6 +172,7 @@ export class CanvasApp {
 
   public resize() {
     this.setupCanvas();
+    this.startRenderLoop();
   }
 
   public getAppState(): AppState {
