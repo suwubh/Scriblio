@@ -1,5 +1,9 @@
 # ✏️ Scriblio - AI-Powered Collaborative Whiteboard
 
+![License](https://img.shields.io/github/license/suwubh/Scriblio)
+![Stars](https://img.shields.io/github/stars/suwubh/Scriblio?style=social)
+![Tech](https://img.shields.io/badge/Tech-React%20%7C%20TypeScript%20%7C%20Vite%20%7C%20Yjs-blue)
+
 A real-time collaborative whiteboard that combines **CRDT technology**, **AI assistance**, and a seamless **multiplayer experience**.
 
 ---
@@ -154,7 +158,7 @@ Scriblio/
 
 ## 🤝 Contributing
 
-We welcome contributions! Here's how to get started:
+Contributions are welcomed! Here's how to get started:
 
 ```bash
 # 1. Fork the repository
