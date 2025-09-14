@@ -1,5 +1,6 @@
 # ✏️ Scriblio - AI-Powered Collaborative Whiteboard
 
+![License](https://img.shields.io/github/license/suwubh/Scriblio)
 ![Stars](https://img.shields.io/github/stars/suwubh/Scriblio?style=social)
 ![Tech](https://img.shields.io/badge/Tech-React%20%7C%20TypeScript%20%7C%20Vite%20%7C%20Yjs-blue)
 
