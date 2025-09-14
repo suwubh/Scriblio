@@ -1,8 +1,8 @@
 # ✏️ Scriblio - AI-Powered Collaborative Whiteboard
 
+![License](https://img.shields.io/badge/License-MIT-green)
 ![Stars](https://img.shields.io/github/stars/suwubh/Scriblio?style=social)
 ![Tech](https://img.shields.io/badge/Tech-React%20%7C%20TypeScript%20%7C%20Vite%20%7C%20Yjs-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
 
 A real-time collaborative whiteboard that combines **CRDT technology**, **AI assistance**, and a seamless **multiplayer experience**.
 
