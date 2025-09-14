@@ -99,20 +99,22 @@ npm run preview
 ---
 
 ## 📁 Project Structure
-
 ```
 Scriblio/
 ├── public/                 # Static assets (index.html, icons, etc.)
 ├── src/                    # Frontend source code
-│   ├── components/         # React components
-│   │   ├── Whiteboard/     # Core whiteboard functionality
-│   │   ├── UI/             # Reusable UI components
-│   │   └── AI/             # AI-related components
+│   ├── assets/             # Images, icons, and static resources
+│   ├── collaboration/      # Real-time collaboration logic (CRDT, networking)
+│   ├── components/         # React components (UI + Whiteboard)
+│   ├── engine/             # Core whiteboard drawing/logic engine
 │   ├── hooks/              # Custom React hooks
-│   ├── store/              # State management
-│   ├── utils/              # Helper functions & utilities
-│   ├── types/              # TypeScript definitions
-│   └── styles/             # Global styles
+│   ├── styles/             # Global styles (CSS/Tailwind)
+│   ├── types/              # TypeScript type definitions
+│   ├── App.css             # App-wide CSS
+│   ├── App.tsx             # Root React component
+│   ├── index.css           # Entry CSS
+│   ├── main.tsx            # Application entry point
+│   └── vite-env.d.ts       # Vite + TS type declarations
 ├── redis-server/           # Redis setup/configuration
 ├── signaling-server/       # WebSocket/Signaling server
 ├── .gitignore
