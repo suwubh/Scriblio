@@ -1,152 +1,94 @@
-Scriblio
+# ✏️ Scriblio - AI-Powered Collaborative Whiteboard
 
-Overview
+Scriblio is an **AI-powered collaborative whiteboard** that lets teams brainstorm, sketch, and create in real time. It combines CRDT-based synchronization, hybrid networking, and smart AI features to give you a seamless, interactive whiteboard experience.
 
-🎨 Scriblio is a collaborative whiteboard that blends real-time CRDT-based editing (Yjs) with hybrid transport (WebRTC + WebSockets) and Redis-powered presence/pub-sub. It also includes an AI command palette for generating diagrams, summaries, and images right inside the canvas.
+## 🚀 Features
 
-⚡ Built with React + TypeScript + Vite for instant HMR, smooth local development, and optimized production builds.
+* ⚡ **Real-time Collaboration** — Built with **Yjs (CRDT)** for conflict-free editing
+* 🌐 **Hybrid Networking** — Uses WebRTC for peer-to-peer + WebSocket + Redis fallback
+* 🧑‍🤝‍🧑 **Presence** — See who’s online and active with Redis pub/sub
+* 🤖 **AI Command Palette** — Context-aware AI suggestions & commands
+* 📜 **Replay & Versioning** — Travel back in time and replay board activity
+* 📤 **Export Options** — Export your boards as **PNG, PDF, or JSON**
 
-Demo
+## 🛠️ Tech Stack
 
-🚀 Live demo: Coming soon
-🧪 Local tryout: See the Getting Started
- guide below.
+* **Frontend:** React, TypeScript, Vite
+* **Collaboration:** Yjs, y-webrtc, WebSocket
+* **Backend:** Redis (for signaling & presence)
+* **Other:** TailwindCSS, AI integration
 
-Features
+## 📸 Screenshots
 
-🤝 Real-time collaboration with Yjs CRDTs
+| ![Screenshot 1](./screenshots/screenshot1.png) | ![Screenshot 2](./screenshots/screenshot2.png) |
+| ---------------------------------------------- | ---------------------------------------------- |
+| ![Screenshot 3](./screenshots/screenshot3.png) | ![Screenshot 4](./screenshots/screenshot4.png) |
+| ![Screenshot 5](./screenshots/screenshot5.png) | ![Screenshot 6](./screenshots/screenshot6.png) |
 
-Conflict-free sync, shared undo/redo, and eventual consistency.
+## ⚙️ Getting Started
 
-📡 Hybrid transport
+### Prerequisites
 
-Low-latency WebRTC data channels with WebSocket/Redis fallback for signaling & robustness.
+* [Node.js](https://nodejs.org/) (>= 18)
+* [Redis](https://redis.io/) running locally or in Docker
 
-👥 Presence & awareness
+### Setup
 
-Remote cursors and user presence via Redis pub/sub, horizontally scalable.
+```bash
+# Clone the repo
+git clone https://github.com/suwubh/Scriblio.git
+cd Scriblio
 
-🧠 AI command palette
-
-Generate diagrams, summarize canvases, and create inline text-to-image with smart auto-layout.
-
-🕘 Replay & versioning
-
-Session history plus one-click exports to PNG, PDF, or JSON.
-
-Tech Stack
-
-🧩 Frontend: React, TypeScript, Vite
-
-🪢 Collaboration: Yjs (CRDT), y-webrtc, WebRTC data channels, WebSockets
-
-🧷 Realtime infra: Redis pub/sub for presence, fan-out, signaling
-
-🛠️ Tooling: Vite CLI, dev/build/preview scripts
-
-Architecture
-
-🗺️ Clients maintain a shared Yjs document; updates flow via WebRTC when possible, with WebSockets/Redis fallback.
-
-📣 Presence & signaling handled through Redis pub/sub channels for scalable awareness.
-
-🏗️ Assets built by Vite are production-ready for serving from a static host or CDN.
-
-Getting Started
-
-Prerequisites:
-
-Node.js + npm
-
-Redis instance for presence/signaling
-
-Setup:
-
-git clone <repo-url>
-cd scriblio
+# Install dependencies
 npm install
 
-
-Environment:
-
+# Copy environment variables
 cp .env.example .env.local
-# Set required vars: REDIS_URL, AI provider keys (prefixed with VITE_)
 
+# Start Redis (if using Docker)
+docker run -d -p 6379:6379 redis:alpine
 
-Development:
+# Run in development mode
+npm run dev
 
-npm run dev   # start Vite with HMR
-
-
-Open the localhost URL printed in your terminal.
-
-Production build:
-
+# Build for production
 npm run build
-npm run preview   # serve built app locally
 
-Environment
+# Preview production build
+npm run preview
+```
 
-🔐 Use .env.local with Vite’s conventions (VITE_* prefix for client-side).
+## 📂 Project Structure
 
-Examples:
+```
+Scriblio/
+├── public/          # Static assets
+├── src/             # React + Yjs code
+│   ├── components/  # UI components
+│   ├── hooks/       # Custom React hooks
+│   ├── store/       # State management
+│   └── utils/       # Helper functions
+├── package.json
+└── README.md
+```
 
-VITE_APP_NAME
+## 📌 Roadmap
 
-REDIS_URL
+* [ ] Authentication & user accounts
+* [ ] Cloud storage support
+* [ ] Voice chat integration
+* [ ] Mobile responsive UI
 
-VITE_AI_API_KEY
+## 🤝 Contributing
 
-Scripts
+Contributions are welcome! Please open an issue or submit a pull request.
 
-▶️ npm run dev — Vite dev server with HMR
+1. Fork the repo
+2. Create a new branch (`git checkout -b feature/your-feature`)
+3. Commit changes (`git commit -m 'Add new feature'`)
+4. Push to branch (`git push origin feature/your-feature`)
+5. Open a PR
 
-🏗️ npm run build — optimized production build
+## 📜 License
 
-🔍 npm run preview — preview built app locally
-
-Usage
-
-🖱️ Create or join a canvas and collaborate in real-time.
-
-✨ Use the AI palette for diagrams, summaries, or text-to-image prompts.
-
-📤 Export canvases as PNG, PDF, or JSON; review past sessions with replay/version history.
-
-Project Structure
-
-📂 src/ — React components, hooks, state, providers
-
-📂 public/ — Static assets
-
-🧭 Collaboration, presence, and AI modules are kept modular for testing and upgrades.
-
-Contributing
-
-🤝 Contributions are welcome!
-
-Open issues, fork the repo, and submit PRs.
-
-Keep documentation in sync with code.
-
-Consider adding a CONTRIBUTING.md for coding standards and workflows.
-
-Roadmap
-
-🔐 Auth & team canvases with invites and roles
-
-💬 Persistent history, comments, mentions, and notifications
-
-🧠 Expanded AI actions: smarter auto-layout, diagram refactoring, domain templates
-
-Acknowledgements
-
-🧮 Yjs
- for CRDT-based collaboration
-
-🌐 WebRTC data channels for P2P sync
-
-📣 Redis pub/sub for signaling and presence
-
-⚙️ Vite
- for blazing-fast builds
+This project is licensed under the [MIT License](./LICENSE).
