@@ -100,24 +100,30 @@ npm run preview
 
 ## 📁 Project Structure
 
-```bash
+```
 Scriblio/
-├── public/             # Static assets
-├── src/                # Application source
-│   ├── components/     # React components
-│   │   ├── Whiteboard/ # Core whiteboard functionality
-│   │   ├── UI/         # Reusable UI components
-│   │   └── AI/         # AI-related components
-│   ├── hooks/          # Custom React hooks
-│   ├── store/          # State management (Yjs bindings, presence)
-│   ├── utils/          # Helper functions & utilities
-│   ├── types/          # TypeScript definitions
-│   └── styles/         # Global styles (Tailwind + custom)
-├── server/             # Backend services (if applicable)
-├── docs/               # Documentation
-├── package.json        # Project metadata & scripts
-├── .env.example        # Example environment variables
-└── vite.config.ts      # Vite configuration
+├── public/                 # Static assets (index.html, icons, etc.)
+├── src/                    # Frontend source code
+│   ├── components/         # React components
+│   │   ├── Whiteboard/     # Core whiteboard functionality
+│   │   ├── UI/             # Reusable UI components
+│   │   └── AI/             # AI-related components
+│   ├── hooks/              # Custom React hooks
+│   ├── store/              # State management
+│   ├── utils/              # Helper functions & utilities
+│   ├── types/              # TypeScript definitions
+│   └── styles/             # Global styles
+├── redis-server/           # Redis setup/configuration
+├── signaling-server/       # WebSocket/Signaling server
+├── .gitignore
+├── eslint.config.js        # ESLint configuration
+├── index.html              # Entry HTML file
+├── package.json            # Dependencies & scripts
+├── postcss.config.js       # PostCSS configuration
+├── tailwind.config.js      # TailwindCSS configuration
+├── tsconfig.app.json       # TS config for app
+├── tsconfig.json           # Root TS configuration
+└── vite.config.ts          # Vite build config
 ```
 
 ---
