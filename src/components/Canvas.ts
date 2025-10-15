@@ -26,6 +26,11 @@ export class CanvasApp {
     this.eventHandler = new EventHandler(this.canvas, this.appState);
     this.setupCanvas();
     this.startRenderLoop();
+    this.eventHandler.setOnElementsChanged((elements) => {
+    if (this.onElementsMutated) {
+      this.onElementsMutated(elements);
+    }
+  });
   }
 
   public setOnElementsMutated(cb: (elements: ExcalidrawElement[]) => void) {

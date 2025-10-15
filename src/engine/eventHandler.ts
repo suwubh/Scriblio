@@ -3,6 +3,7 @@
 import { ExcalidrawElement, AppState, Point } from '../types/excalidraw';
 
 export class EventHandler {
+  private onElementsChanged?: (elements: ExcalidrawElement[]) => void;
   private canvas: HTMLCanvasElement;
   private elements: ExcalidrawElement[] = [];
   private appState: AppState;
@@ -21,6 +22,10 @@ export class EventHandler {
     this.appState = newAppState;
   }
 
+  public setOnElementsChanged(callback: (elements: ExcalidrawElement[]) => void) {
+    this.onElementsChanged = callback;
+  }
+
   public setElements(elements: ExcalidrawElement[]) {
     this.elements = [...elements];
     if (elements.length === 0) {
@@ -34,6 +39,12 @@ export class EventHandler {
     this.canvas.addEventListener('pointermove', this.handlePointerMove.bind(this));
     this.canvas.addEventListener('pointerup', this.handlePointerUp.bind(this));
     this.canvas.addEventListener('wheel', this.handleWheel.bind(this), { passive: false });
+  }
+
+  private notifyElementsChanged() {
+    if (this.onElementsChanged) {
+      this.onElementsChanged([...this.elements]);
+    }
   }
 
   private handlePointerDown(event: PointerEvent) {
@@ -180,7 +191,7 @@ export class EventHandler {
   }
 
   private finalizeDragging() {
-    // Drag is complete - positions are already updated
+    this.notifyElementsChanged();
   }
 
   private updateRectangleSelection() {
@@ -435,14 +446,16 @@ export class EventHandler {
     if (this.appState.editingElement) {
       const element = this.appState.editingElement;
 
-      element.updated = Date.now(); // FIX: Update timestamp before finalizing
+      element.updated = Date.now();
 
       if (element.type === 'freedraw' || element.type === 'line') {
         if (element.points && element.points.length > 1) {
           this.elements.push(element);
+          this.notifyElementsChanged();
         }
       } else if (Math.abs(element.width) > 3 || Math.abs(element.height) > 3) {
         this.elements.push(element);
+        this.notifyElementsChanged();
       }
 
       this.appState.editingElement = null;
@@ -469,7 +482,7 @@ export class EventHandler {
     if (hit) {
       this.elements = this.elements.filter(el => el.id !== hit.id);
       this.appState.selectedElementIds = this.appState.selectedElementIds.filter(id => id !== hit.id);
-      // FIX: Consistent mutation tracking (optional but good practice)
+      this.notifyElementsChanged();
     }
   }
 
