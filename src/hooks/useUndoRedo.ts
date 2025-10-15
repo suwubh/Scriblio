@@ -15,100 +15,168 @@ function deepCopyState(elements: ExcalidrawElement[], appState: AppState): Histo
 }
 
 function generateStateSignature(elements: ExcalidrawElement[], appState: AppState): string {
-  // Create a more efficient signature for state comparison
-  const elementsSignature = elements.map(el => `${el.id}:${el.x}:${el.y}:${el.width}:${el.height}:${el.updated}`).join(',');
-  const appStateSignature = `${appState.viewTransform.x}:${appState.viewTransform.y}:${appState.viewTransform.zoom}:${appState.selectedElementIds.join(',')}`;
+  // Create a more comprehensive signature for state comparison
+  const elementsSignature = elements.map(el =>
+    [
+      el.id, el.type, el.x, el.y, el.width, el.height, el.angle,
+      el.strokeColor, el.backgroundColor, el.strokeWidth, el.strokeStyle,
+      el.roughness, el.fillStyle, el.opacity,
+      el.points ? el.points.length : 0,
+      el.text ? el.text.length : 0,
+      el.imageData ? 1 : 0,
+      el.updated || 0,
+    ].join(':')
+  ).join('|');
+
+  // Include more of appState that affects view/selection
+  const appStateSignature = [
+    appState.viewTransform.x,
+    appState.viewTransform.y,
+    appState.viewTransform.zoom,
+    appState.selectedElementIds.join(','),
+    appState.activeTool,
+    appState.isToolLocked ? 1 : 0,
+  ].join(':');
+
   return `${elementsSignature}|${appStateSignature}`;
 }
 
 export function useUndoRedo() {
-  const [history, setHistory] = useState<HistoryState[]>([]);
-  const [index, setIndex] = useState(-1);
-  const [lastSignature, setLastSignature] = useState<string>('');
+  const [state, setState] = useState({
+    history: [] as HistoryState[],
+    index: -1,
+    lastSignature: ''
+  });
 
   const initialize = useCallback((elements: ExcalidrawElement[], appState: AppState) => {
-    if (history.length === 0) {
-      const initial = deepCopyState(elements, appState);
-      const signature = generateStateSignature(elements, appState);
-      setHistory([initial]);
-      setIndex(0);
-      setLastSignature(signature);
-    }
-  }, [history.length]);
+    console.log('🎯 Initialize called');
+    
+    setState(prev => {
+      if (prev.history.length === 0) {
+        const initial = deepCopyState(elements, appState);
+        const signature = generateStateSignature(elements, appState);
+        
+        console.log('✅ Initializing history');
+        
+        return {
+          history: [initial],
+          index: 0,
+          lastSignature: signature
+        };
+      }
+      return prev;
+    });
+  }, []);
 
   const saveState = useCallback((elements: ExcalidrawElement[], appState: AppState) => {
     const signature = generateStateSignature(elements, appState);
     
-    // Don't save if the state hasn't actually changed
-    if (signature === lastSignature) {
-      return;
-    }
-
-    const nextState = deepCopyState(elements, appState);
-    
-    setHistory(prev => {
-      // Remove all states after current index (handles branching from undo state)
-      const base = prev.slice(0, Math.max(0, index + 1));
-      const next = [...base, nextState];
+    setState(prev => {
+      console.log('💾 saveState:', {
+        elementsCount: elements.length,
+        currentIndex: prev.index,
+        historyLength: prev.history.length,
+        willSave: signature !== prev.lastSignature
+      });
       
-      // Limit history size to prevent memory issues
-      if (next.length > 50) {
-        next.shift();
-        return next;
+      if (signature === prev.lastSignature) {
+        console.log('⏭️ Skipping save - unchanged');
+        return prev;
       }
-      return next;
+
+      const nextState = deepCopyState(elements, appState);
+      const base = prev.history.slice(0, prev.index + 1);
+      const newHistory = [...base, nextState];
+      
+      console.log('📚 History updated:', {
+        newLength: newHistory.length,
+        newIndex: prev.index + 1
+      });
+      
+      return {
+        history: newHistory.length > 50 ? newHistory.slice(1) : newHistory,
+        index: Math.min(prev.index + 1, 49),
+        lastSignature: signature
+      };
     });
-    
-    setIndex(prev => Math.min(prev + 1, 49));
-    setLastSignature(signature);
-  }, [index, lastSignature]);
+  }, []);
 
   const undo = useCallback((): HistoryState | null => {
-    if (index <= 0 || history.length === 0) return null;
+    let result: HistoryState | null = null;
     
-    const newIndex = index - 1;
-    setIndex(newIndex);
-    const state = history[newIndex];
-    
-    if (state) {
-      const signature = generateStateSignature(state.elements, state.appState);
-      setLastSignature(signature);
-      return deepCopyState(state.elements, state.appState);
-    }
-    
-    return null;
-  }, [history, index]);
-
-  const redo = useCallback((): HistoryState | null => {
-    if (index >= history.length - 1) return null;
-    
-    const newIndex = index + 1;
-    setIndex(newIndex);
-    const state = history[newIndex];
-    
-    if (state) {
-      const signature = generateStateSignature(state.elements, state.appState);
-      setLastSignature(signature);
-      return deepCopyState(state.elements, state.appState);
-    }
-    
-    return null;
-  }, [history, index]);
-
-  const clear = useCallback((elements: ExcalidrawElement[], appState: AppState) => {
-    const cleared = deepCopyState(elements, appState);
-    const signature = generateStateSignature(elements, appState);
-    
-    setHistory(prev => {
-      const base = prev.slice(0, Math.max(0, index + 1));
-      const next = [...base, cleared];
-      if (next.length > 50) next.shift();
-      return next;
+    setState(prev => {
+      console.log('🔙 Undo:', { index: prev.index, historyLength: prev.history.length });
+      
+      if (prev.index <= 0 || prev.history.length === 0) {
+        console.log('❌ Cannot undo');
+        return prev;
+      }
+      
+      const newIndex = prev.index - 1;
+      const state = prev.history[newIndex];
+      
+      if (state) {
+        console.log('✅ Undo successful:', { newIndex, elementsCount: state.elements.length });
+        result = deepCopyState(state.elements, state.appState);
+        
+        return {
+          ...prev,
+          index: newIndex,
+          lastSignature: generateStateSignature(state.elements, state.appState)
+        };
+      }
+      
+      console.log('❌ No state at index:', newIndex);
+      return prev;
     });
     
-    setIndex(prev => Math.min(prev + 1, 49));
-    setLastSignature(signature);
-  }, [index]);
+    return result;
+  }, []);
+
+  const redo = useCallback((): HistoryState | null => {
+    let result: HistoryState | null = null;
+    
+    setState(prev => {
+      console.log('🔜 Redo:', { index: prev.index, historyLength: prev.history.length });
+      
+      if (prev.index >= prev.history.length - 1) {
+        console.log('❌ Cannot redo');
+        return prev;
+      }
+      
+      const newIndex = prev.index + 1;
+      const state = prev.history[newIndex];
+      
+      if (state) {
+        console.log('✅ Redo successful:', { newIndex, elementsCount: state.elements.length });
+        result = deepCopyState(state.elements, state.appState);
+        
+        return {
+          ...prev,
+          index: newIndex,
+          lastSignature: generateStateSignature(state.elements, state.appState)
+        };
+      }
+      
+      return prev;
+    });
+    
+    return result;
+  }, []);
+
+  const clear = useCallback((elements: ExcalidrawElement[], appState: AppState) => {
+    setState(prev => {
+      const cleared = deepCopyState(elements, appState);
+      const base = prev.history.slice(0, prev.index + 1);
+      const newHistory = [...base, cleared];
+      
+      return {
+        history: newHistory.length > 50 ? newHistory.slice(1) : newHistory,
+        index: Math.min(prev.index + 1, 49),
+        lastSignature: generateStateSignature(elements, appState)
+      };
+    });
+  }, []);
 
   return {
     saveState,
@@ -116,7 +184,7 @@ export function useUndoRedo() {
     redo,
     clear,
     initialize,
-    canUndo: index > 0,
-    canRedo: index < history.length - 1,
+    canUndo: state.index > 0,
+    canRedo: state.index < state.history.length - 1,
   };
 }

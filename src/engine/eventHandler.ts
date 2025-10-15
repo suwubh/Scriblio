@@ -12,10 +12,16 @@ export class EventHandler {
   private dragOffsets: Map<string, Point> = new Map();
   private selectionRect: { start: Point; current: Point } | null = null;
 
+  private onElementsCommitted?: (elements: ExcalidrawElement[]) => void;
+
   constructor(canvas: HTMLCanvasElement, appState: AppState) {
     this.canvas = canvas;
     this.appState = appState;
     this.setupEventListeners();
+  }
+
+  public setOnElementsCommitted(cb: (elements: ExcalidrawElement[]) => void) {
+    this.onElementsCommitted = cb;
   }
 
   public updateAppState(newAppState: AppState) {
@@ -39,6 +45,14 @@ export class EventHandler {
     this.canvas.addEventListener('pointermove', this.handlePointerMove.bind(this));
     this.canvas.addEventListener('pointerup', this.handlePointerUp.bind(this));
     this.canvas.addEventListener('wheel', this.handleWheel.bind(this), { passive: false });
+  }
+
+  private commitNow() {
+    if (this.onElementsCommitted) {
+      // Deep copy to avoid shared refs
+      const deep = JSON.parse(JSON.stringify(this.elements)) as ExcalidrawElement[];
+      this.onElementsCommitted(deep);
+    }
   }
 
   private notifyElementsChanged() {
@@ -192,6 +206,7 @@ export class EventHandler {
 
   private finalizeDragging() {
     this.notifyElementsChanged();
+    this.commitNow();
   }
 
   private updateRectangleSelection() {
@@ -343,7 +358,6 @@ export class EventHandler {
         reader.onload = (e) => {
           const img = new Image();
           img.onload = () => {
-            // Calculate size to fit within reasonable bounds
             let width = img.width;
             let height = img.height;
             const maxSize = 300;
@@ -373,7 +387,6 @@ export class EventHandler {
               isDeleted: false,
               groupIds: [],
               updated: Date.now(),
-              // Store image data URL
               imageData: e.target?.result as string
             };
 
@@ -401,7 +414,7 @@ export class EventHandler {
     };
 
     element.points.push(relativePoint);
-    element.updated = Date.now(); // FIX: Update timestamp for undo/redo
+    element.updated = Date.now();
 
     if (element.points.length > 1) {
       const minX = Math.min(...element.points.map(p => p.x));
@@ -411,7 +424,7 @@ export class EventHandler {
 
       element.width = Math.max(1, maxX - minX);
       element.height = Math.max(1, maxY - minY);
-      element.updated = Date.now(); // FIX: Update timestamp after geometry changes
+      element.updated = Date.now();
 
       if (minX < 0) {
         element.x += minX;
@@ -459,6 +472,7 @@ export class EventHandler {
       }
 
       this.appState.editingElement = null;
+      this.commitNow(); 
     }
   }
 
@@ -483,6 +497,7 @@ export class EventHandler {
       this.elements = this.elements.filter(el => el.id !== hit.id);
       this.appState.selectedElementIds = this.appState.selectedElementIds.filter(id => id !== hit.id);
       this.notifyElementsChanged();
+      this.commitNow();
     }
   }
 

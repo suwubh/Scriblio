@@ -31,6 +31,8 @@ export class CanvasApp {
       this.onElementsMutated(elements);
     }
   });
+    this.setupCanvas();
+    this.startRenderLoop();
   }
 
   public setOnElementsMutated(cb: (elements: ExcalidrawElement[]) => void) {
