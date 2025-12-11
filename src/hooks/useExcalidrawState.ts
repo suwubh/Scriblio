@@ -71,21 +71,21 @@ export function useExcalidrawState() {
   }, []);
 
   const generateSignature = useCallback((els: ExcalidrawElement[]) => {
-  return els
-    .map(el =>
-      [
-        el.id,
-        el.x, el.y, el.width, el.height, el.angle,
-        el.strokeColor, el.backgroundColor,
-        el.strokeWidth, el.strokeStyle, el.roughness, el.fillStyle,
-        el.opacity,
-        el.points?.length || 0,
-        el.text || '',
-        el.imageData ? 1 : 0,
-      ].join(':'),
-    )
-    .join('|');
-}, []);
+    return els
+      .map(el =>
+        [
+          el.id,
+          el.x, el.y, el.width, el.height, el.angle,
+          el.strokeColor, el.backgroundColor,
+          el.strokeWidth, el.strokeStyle, el.roughness, el.fillStyle,
+          el.opacity,
+          el.points?.length || 0,
+          el.text || '',
+          el.imageData ? 1 : 0,
+        ].join(':'),
+      )
+      .join('|');
+  }, []);
 
   const commitScene = useCallback(
     (nextElements: ExcalidrawElement[], nextAppState: AppState) => {
@@ -101,43 +101,42 @@ export function useExcalidrawState() {
   );
 
   const setCanvasAppRef = useCallback((app: any) => {
-  console.log('📌 Setting canvas app ref:', !!app)
-  canvasAppRef.current = app
-}, []);
+    console.log('📌 Setting canvas app ref:', !!app)
+    canvasAppRef.current = app
+  }, []);
 
   const updateAppState = useCallback(
-  (updates: Partial<AppState>) => {
-    console.log('🔄 updateAppState called with:', Object.keys(updates))
-    console.log('📱 canvasAppRef.current:', !!canvasAppRef.current)
-    
-    setAppState(prev => {
-      const merged = { ...prev, ...updates }
+    (updates: Partial<AppState>) => {
+      console.log('🔄 updateAppState called with:', Object.keys(updates))
+      console.log('📱 canvasAppRef.current:', !!canvasAppRef.current)
       
-      // ✅ Add proper null check and method verification
-      if (canvasAppRef.current && 
-          typeof canvasAppRef.current.updateAppState === 'function' && 
-          !isUndoRedoInProgress.current) {
-        console.log('✅ Calling canvasAppRef.current.updateAppState')
-        canvasAppRef.current.updateAppState(merged)
-      } else {
-        console.log('⏳ Skipping canvas update - not ready yet')
-      }
+      setAppState(prev => {
+        const merged = { ...prev, ...updates }
+        
+        // ✅ Add proper null check and method verification
+        if (canvasAppRef.current && 
+            typeof canvasAppRef.current.updateAppState === 'function' && 
+            !isUndoRedoInProgress.current) {
+          console.log('✅ Calling canvasAppRef.current.updateAppState')
+          canvasAppRef.current.updateAppState(merged)
+        } else {
+          console.log('⏳ Skipping canvas update - not ready yet')
+        }
 
-      return merged
-    })
-  },
-  []
-);
+        return merged
+      })
+    },
+    []
+  );
 
   const setElementsFromCanvas = useCallback(
     (newElements: ExcalidrawElement[]) => {
-      if (isUndoRedoInProgress.current) {
-        setElements(newElements);
-        return;
-      }
-
       setElements(newElements);
-      commitScene(newElements, appState);
+      
+      // Only commit if NOT during undo/redo
+      if (!isUndoRedoInProgress.current) {
+        commitScene(newElements, appState);
+      }
     },
     [commitScene, appState]
   );
@@ -204,115 +203,114 @@ export function useExcalidrawState() {
   }, [appState, clear]);
 
   const performUndo = useCallback(() => {
-  console.log('🔄 UNDO clicked - canUndo:', canUndo, 'isInProgress:', isUndoRedoInProgress.current);
-  
-  if (!canUndo) {
-    console.log('❌ Cannot undo - no history available');
-    return;
-  }
-
-  if (isUndoRedoInProgress.current) {
-    console.log('⚠️ Undo already in progress, skipping');
-    return;
-  }
-
-  isUndoRedoInProgress.current = true;
-  console.log('🔒 Undo lock acquired');
-  
-  const prevState = undo();
-  
-  if (prevState) {
-    console.log('📚 Undo successful, restoring state with', prevState.elements.length, 'elements');
+    console.log('🔄 UNDO clicked - canUndo:', canUndo, 'isInProgress:', isUndoRedoInProgress.current);
     
-    // Update React state first
-    setElements(prevState.elements);
-    setAppState(prevState.appState);
+    if (!canUndo) {
+      console.log('❌ Cannot undo - no history available');
+      return;
+    }
 
-    // Use requestAnimationFrame for better timing with canvas updates
-    requestAnimationFrame(() => {
-      if (canvasAppRef.current) {
-        console.log('🎨 Updating canvas with undo state');
-        try {
-          canvasAppRef.current.setElements(prevState.elements);
-          canvasAppRef.current.updateAppState(prevState.appState);
-          console.log('✅ Canvas updated successfully');
-        } catch (error) {
-          console.error('❌ Failed to update canvas during undo:', error);
-        }
-      } else {
-        console.log('⚠️ Canvas ref not available during undo');
-      }
-      
-      // Update signature after canvas update
-      lastCommittedSignature.current = generateSignature(prevState.elements);
-      
-      // Release lock with longer timeout to ensure all updates complete
-      setTimeout(() => {
-        isUndoRedoInProgress.current = false;
-        console.log('🔓 Undo lock released');
-      }, 50);
-    });
-  } else {
-    console.log('❌ Undo returned null state');
-    isUndoRedoInProgress.current = false;
-  }
-}, [undo, canUndo, generateSignature]);
+    if (isUndoRedoInProgress.current) {
+      console.log('⚠️ Undo already in progress, skipping');
+      return;
+    }
 
-const performRedo = useCallback(() => {
-  console.log('🔄 REDO clicked - canRedo:', canRedo, 'isInProgress:', isUndoRedoInProgress.current);
-  
-  if (!canRedo) {
-    console.log('❌ Cannot redo - no future history available');
-    return;
-  }
-
-  if (isUndoRedoInProgress.current) {
-    console.log('⚠️ Redo already in progress, skipping');
-    return;
-  }
-
-  isUndoRedoInProgress.current = true;
-  console.log('🔒 Redo lock acquired');
-  
-  const nextState = redo();
-  
-  if (nextState) {
-    console.log('📚 Redo successful, restoring state with', nextState.elements.length, 'elements');
+    isUndoRedoInProgress.current = true;
+    console.log('🔒 Undo lock acquired');
     
-    // Update React state first
-    setElements(nextState.elements);
-    setAppState(nextState.appState);
+    const prevState = undo();
+    
+    if (prevState) {
+      console.log('📚 Undo successful, restoring state with', prevState.elements.length, 'elements');
+      
+      // Update React state first
+      setElements(prevState.elements);
+      setAppState(prevState.appState);
 
-    // Use requestAnimationFrame for better timing with canvas updates
-    requestAnimationFrame(() => {
-      if (canvasAppRef.current) {
-        console.log('🎨 Updating canvas with redo state');
-        try {
-          canvasAppRef.current.setElements(nextState.elements);
-          canvasAppRef.current.updateAppState(nextState.appState);
-          console.log('✅ Canvas updated successfully');
-        } catch (error) {
-          console.error('❌ Failed to update canvas during redo:', error);
+      // Use requestAnimationFrame for better timing with canvas updates
+      requestAnimationFrame(() => {
+        if (canvasAppRef.current) {
+          console.log('🎨 Updating canvas with undo state');
+          try {
+            canvasAppRef.current.setElements(prevState.elements);
+            canvasAppRef.current.updateAppState(prevState.appState);
+            console.log('✅ Canvas updated successfully');
+          } catch (error) {
+            console.error('❌ Failed to update canvas during undo:', error);
+          }
+        } else {
+          console.log('⚠️ Canvas ref not available during undo');
         }
-      } else {
-        console.log('⚠️ Canvas ref not available during redo');
-      }
-      
-      // Update signature after canvas update
-      lastCommittedSignature.current = generateSignature(nextState.elements);
-      
-      // Release lock with longer timeout to ensure all updates complete
-      setTimeout(() => {
-        isUndoRedoInProgress.current = false;
-        console.log('🔓 Redo lock released');
-      }, 50);
-    });
-  } else {
-    console.log('❌ Redo returned null state');
-    isUndoRedoInProgress.current = false;
-  }
-}, [redo, canRedo, generateSignature]);
+        
+        // Update signature after canvas update
+        lastCommittedSignature.current = generateSignature(prevState.elements);
+        
+        // Release lock with longer timeout to ensure all updates complete
+        setTimeout(() => {
+          isUndoRedoInProgress.current = false;
+          console.log('🔓 Undo lock released');
+        }, 100);
+      });
+    } else {
+      console.log('❌ Undo returned null state');
+      isUndoRedoInProgress.current = false;
+    }
+  }, [undo, canUndo, generateSignature]);
 
+  const performRedo = useCallback(() => {
+    console.log('🔄 REDO clicked - canRedo:', canRedo, 'isInProgress:', isUndoRedoInProgress.current);
+    
+    if (!canRedo) {
+      console.log('❌ Cannot redo - no future history available');
+      return;
+    }
+
+    if (isUndoRedoInProgress.current) {
+      console.log('⚠️ Redo already in progress, skipping');
+      return;
+    }
+
+    isUndoRedoInProgress.current = true;
+    console.log('🔒 Redo lock acquired');
+    
+    const nextState = redo();
+    
+    if (nextState) {
+      console.log('📚 Redo successful, restoring state with', nextState.elements.length, 'elements');
+      
+      // Update React state first
+      setElements(nextState.elements);
+      setAppState(nextState.appState);
+
+      // Use requestAnimationFrame for better timing with canvas updates
+      requestAnimationFrame(() => {
+        if (canvasAppRef.current) {
+          console.log('🎨 Updating canvas with redo state');
+          try {
+            canvasAppRef.current.setElements(nextState.elements);
+            canvasAppRef.current.updateAppState(nextState.appState);
+            console.log('✅ Canvas updated successfully');
+          } catch (error) {
+            console.error('❌ Failed to update canvas during redo:', error);
+          }
+        } else {
+          console.log('⚠️ Canvas ref not available during redo');
+        }
+        
+        // Update signature after canvas update
+        lastCommittedSignature.current = generateSignature(nextState.elements);
+        
+        // Release lock with longer timeout to ensure all updates complete
+        setTimeout(() => {
+          isUndoRedoInProgress.current = false;
+          console.log('🔓 Redo lock released');
+        }, 100);
+      });
+    } else {
+      console.log('❌ Redo returned null state');
+      isUndoRedoInProgress.current = false;
+    }
+  }, [redo, canRedo, generateSignature]);
 
   return {
     elements,
