@@ -22,8 +22,9 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
   ({ appState, onAppStateChange, elements, onElementsChange, onCanvasAppReady }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const appRef = useRef<CanvasApp | null>(null)
+    const isInitializing = useRef(false) // 🔒 Track initialization state
+    const hasInitialized = useRef(false) // 🔒 Track if ever initialized
 
-    // Add collaboration hooks
     const { users, updateCursor } = usePresence()
 
     useImperativeHandle(ref, () => ({
@@ -36,56 +37,83 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
       },
     }))
 
+    // 🔒 FIX: Single initialization with proper cleanup
     useEffect(() => {
-      if (canvasRef.current && !appRef.current) {
-        console.log('🎨 Initializing CanvasApp...')
-        
-        try {
-          appRef.current = new CanvasApp(canvasRef.current, appState)
-
-          // Wire engine -> React
-          appRef.current.setOnElementsMutated((els) => onElementsChange(els))
-          appRef.current.setOnAppStateMutated((st) => onAppStateChange(st))
-
-          // ✅ Notify parent that canvas app is ready
-          if (onCanvasAppReady) {
-            console.log('📡 Notifying parent that CanvasApp is ready')
-            onCanvasAppReady(appRef.current)
-          }
-
-          console.log('✅ CanvasApp initialized successfully')
-
-          const handleResize = () => {
-          if (appRef.current) {
-          appRef.current.resize()
-          }
-        }
-      
-         // Initial resize
-          handleResize()
-      
-          window.addEventListener('resize', handleResize)
-
-          return () => window.removeEventListener('resize', handleResize)
-        } catch (error) {
-          console.error('❌ Failed to initialize CanvasApp:', error)
-        }
+      // Prevent multiple initializations
+      if (!canvasRef.current || hasInitialized.current || isInitializing.current) {
+        return
       }
-    }, [appState, onAppStateChange, onElementsChange, onCanvasAppReady])
 
-    // React -> engine sync
+      isInitializing.current = true
+      console.log('🎨 Initializing CanvasApp...')
+      
+      try {
+        const canvasApp = new CanvasApp(canvasRef.current, appState)
+        appRef.current = canvasApp
+
+        // Wire engine -> React
+        canvasApp.setOnElementsMutated((els) => onElementsChange(els))
+        canvasApp.setOnAppStateMutated((st) => onAppStateChange(st))
+
+        // Notify parent that canvas app is ready
+        if (onCanvasAppReady) {
+          console.log('📡 Notifying parent that CanvasApp is ready')
+          onCanvasAppReady(canvasApp)
+        }
+
+        hasInitialized.current = true
+        console.log('✅ CanvasApp initialized successfully')
+
+        // Setup resize handler
+        const handleResize = () => {
+          if (appRef.current) {
+            appRef.current.resize()
+          }
+        }
+      
+        handleResize()
+        window.addEventListener('resize', handleResize)
+
+        // 🔒 FIX: Proper cleanup function
+        return () => {
+          console.log('🧹 Cleaning up CanvasApp...')
+          window.removeEventListener('resize', handleResize)
+          
+          if (appRef.current) {
+            appRef.current.destroy()
+            appRef.current = null
+          }
+          
+          hasInitialized.current = false
+          isInitializing.current = false
+        }
+      } catch (error) {
+        console.error('❌ Failed to initialize CanvasApp:', error)
+        isInitializing.current = false
+        return undefined
+      }
+    }, []) // 🔒 FIX: Empty deps - initialize only once
+
+    // 🔒 FIX: Separate effect for appState sync (only after initialization)
     useEffect(() => {
-      if (appRef.current && typeof appRef.current.updateAppState === 'function') {
+      if (hasInitialized.current && 
+          appRef.current && 
+          typeof appRef.current.updateAppState === 'function') {
         appRef.current.updateAppState(appState as AppState)
       }
     }, [appState])
 
+    // 🔒 FIX: Separate effect for elements sync (only after initialization)
     useEffect(() => {
-      if (elements !== undefined && appRef.current && typeof appRef.current.setElements === 'function') {
+      if (hasInitialized.current && 
+          elements !== undefined && 
+          appRef.current && 
+          typeof appRef.current.setElements === 'function') {
         appRef.current.setElements(elements)
       }
     }, [elements])
 
+    // Tool cursor effect (unchanged)
     useEffect(() => {
       if (!canvasRef.current) return
 
@@ -96,7 +124,7 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
       }
     }, [appState.activeTool])
 
-    // Add cursor tracking for collaboration
+    // Mouse tracking for collaboration (unchanged)
     const handleMouseMove = (e: React.MouseEvent) => {
       const rect = canvasRef.current?.getBoundingClientRect()
       if (rect) {
@@ -106,7 +134,7 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
       }
     }
 
-    // Render remote cursors overlay
+    // Render remote cursors
     const renderRemoteCursors = () => {
       return users.map(user => {
         if (!user.cursor) return null
@@ -157,7 +185,6 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
           }}
           onMouseMove={handleMouseMove}
         />
-        {/* Render remote user cursors */}
         {renderRemoteCursors()}
       </div>
     )
