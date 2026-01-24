@@ -8,6 +8,7 @@ import { useExcalidrawState } from './hooks/useExcalidrawState'
 import { CollaborationProvider, PresenceProvider } from './collaboration'
 import { generateUserId, generateUserColor } from './collaboration'
 import { ConnectionStatus } from './components/ConnectionStatus'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import './styles/excalidraw.css'
 import { AppState } from './types/excalidraw'
 
@@ -89,7 +90,6 @@ function AppContent() {
             if (data.appState) {
               updateAppState(data.appState)
             }
-            console.log('Import successful!')
           } catch (error) {
             console.error('Failed to import:', error)
             alert('Failed to import file. Please check the file format.')
@@ -107,70 +107,59 @@ function AppContent() {
 
   return (
     <div className="app-shell">
-  <div className="topbar">
-    {/* Left: tools */}
-    <div className="topbar-left">
-      <Toolbar
-        appState={appState}
-        activeTool={appState.activeTool}
-        isToolLocked={appState.isToolLocked}
-        onToolChange={handleToolChange}
-        onToggleToolLock={handleToggleToolLock}
-        onUndo={undo}
-        onRedo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
-      />
-    </div>
+      <div className="topbar">
+        <div className="topbar-left">
+          <Toolbar
+            appState={appState}
+            activeTool={appState.activeTool}
+            isToolLocked={appState.isToolLocked}
+            onToolChange={handleToolChange}
+            onToggleToolLock={handleToggleToolLock}
+            onUndo={undo}
+            onRedo={redo}
+            canUndo={canUndo}
+            canRedo={canRedo}
+          />
+        </div>
 
-    {/* Center: Scriblio title */}
-    <div className="topbar-title" aria-hidden="true">
-      {['S','c','r','i','b','l','i','o'].map((char, i) => (
-        <span
-          key={i}
-          style={{
-            color: ['#ff5252','#ffca28','#4caf50','#29b6f6','#ab47bc','#ff9800','#ec407a','#66bb6a'][i % 8],
-            textShadow: `
-              -3px -3px 0 #000,
-               3px -3px 0 #000,
-              -3px  3px 0 #000,
-               3px  3px 0 #000
-            `,
-            filter: 'drop-shadow(0 3px 2px rgba(0,0,0,0.5))'
-          }}
-        >
-          {char}
-        </span>
-      ))}
-    </div>
+        <div className="topbar-title" aria-hidden="true">
+          {['S','c','r','i','b','l','i','o'].map((char, i) => (
+            <span
+              key={i}
+              style={{
+                color: ['#ff5252','#ffca28','#4caf50','#29b6f6','#ab47bc','#ff9800','#ec407a','#66bb6a'][i % 8],
+                textShadow: `-3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000`,
+                filter: 'drop-shadow(0 3px 2px rgba(0,0,0,0.5))'
+              }}
+            >
+              {char}
+            </span>
+          ))}
+        </div>
 
-    {/* Right: lock + connection + menu */}
-    <div className="topbar-right">
-      <button
-        className={`tool-btn lock-btn ${appState.isToolLocked ? 'active' : ''}`}
-        onClick={handleToggleToolLock}
-        title="Lock tool"
-        aria-label="Lock tool"
-      >
-        🔒
-      </button>
+        <div className="topbar-right">
+          <button
+            className={`tool-btn lock-btn ${appState.isToolLocked ? 'active' : ''}`}
+            onClick={handleToggleToolLock}
+            title="Lock tool"
+          >
+            🔒
+          </button>
 
-      <ConnectionStatus />
+          <ConnectionStatus />
 
-      <div className="hamburger-container">
-        <button
-          className={`hamburger-btn ${isPanelOpen ? 'active' : ''}`}
-          onClick={() => setIsPanelOpen(!isPanelOpen)}
-          aria-label="Toggle properties panel"
-        >
-          <span className="hamburger-icon">☰</span>
-          Menu
-        </button>
+          <div className="hamburger-container">
+            <button
+              className={`hamburger-btn ${isPanelOpen ? 'active' : ''}`}
+              onClick={() => setIsPanelOpen(!isPanelOpen)}
+            >
+              <span className="hamburger-icon">☰</span>
+              Menu
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-  
-      {/* Main Content Area */}
+      
       <div className="content">
         <div className="canvas-wrap">
           <ExcalidrawCanvas
@@ -179,15 +168,11 @@ function AppContent() {
             appState={appState}
             onElementsChange={setElementsFromCanvas}
             onAppStateChange={updateAppState}
-            onCanvasAppReady={(canvasApp) => {
-              console.log('🎯 Canvas app ready callback fired')
-              setCanvasAppRef(canvasApp)
-            }}
+            onCanvasAppReady={setCanvasAppRef}
           />
         </div>
       </div>
 
-      {/* Footer */}
       <Footer
         viewTransform={appState.viewTransform}
         selectedCount={appState.selectedElementIds.length}
@@ -197,7 +182,6 @@ function AppContent() {
         canRedo={canRedo}
       />
 
-      {/* Slide-out Properties Panel */}
       <PropertiesPanel
         selectedElements={selectedElements}
         appState={appState}
@@ -211,7 +195,6 @@ function AppContent() {
         onPropertyChange={(updates: Partial<AppState>) => updateAppState(updates)}
       />
 
-      {/* Panel Overlay */}
       {isPanelOpen && (
         <div
           className="panel-overlay"
@@ -232,11 +215,62 @@ export default function App() {
     signaling: import.meta.env.VITE_SIGNALING_URLS?.split(','),
   }
 
+  const handleCollaborationError = (error: Error) => {
+    console.error('Collaboration error:', error)
+    // You could show a toast notification here
+  }
+
   return (
-    <CollaborationProvider config={collaborationConfig}>
-      <PresenceProvider userId={userId} userName={userName} userColor={userColor}>
-        <AppContent />
-      </PresenceProvider>
-    </CollaborationProvider>
+    <ErrorBoundary
+      fallback={(error, reset) => (
+        <div style={{
+          height: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#f5f5f5',
+        }}>
+          <div style={{
+            maxWidth: '500px',
+            padding: '2rem',
+            background: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            textAlign: 'center',
+          }}>
+            <h1 style={{ color: '#f44336', marginBottom: '1rem' }}>
+              ⚠️ Application Error
+            </h1>
+            <p style={{ color: '#666', marginBottom: '1.5rem' }}>
+              {error.message}
+            </p>
+            <button
+              onClick={reset}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: '#646cff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: 600,
+              }}
+            >
+              Reload Application
+            </button>
+          </div>
+        </div>
+      )}
+    >
+      <CollaborationProvider 
+        config={collaborationConfig}
+        onError={handleCollaborationError}
+      >
+        <PresenceProvider userId={userId} userName={userName} userColor={userColor}>
+          <AppContent />
+        </PresenceProvider>
+      </CollaborationProvider>
+    </ErrorBoundary>
   )
 }
