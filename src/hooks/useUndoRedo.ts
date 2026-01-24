@@ -1,181 +1,191 @@
 // src/hooks/useUndoRedo.ts
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { ExcalidrawElement, AppState } from '../types/excalidraw';
 
-interface HistoryState {
+interface HistoryEntry {
   elements: ExcalidrawElement[];
   appState: AppState;
 }
 
-function deepCopyState(elements: ExcalidrawElement[], appState: AppState): HistoryState {
+const MAX_HISTORY = 50;
+
+/**
+ * Creates a deep copy of the history entry
+ */
+function cloneEntry(elements: ExcalidrawElement[], appState: AppState): HistoryEntry {
   return {
     elements: JSON.parse(JSON.stringify(elements)),
     appState: JSON.parse(JSON.stringify(appState)),
   };
 }
 
-function generateStateSignature(elements: ExcalidrawElement[], appState: AppState): string {
-  // Create a more comprehensive signature for state comparison
-  const elementsSignature = elements.map(el =>
-    [
-      el.id, el.type, el.x, el.y, el.width, el.height, el.angle,
-      el.strokeColor, el.backgroundColor, el.strokeWidth, el.strokeStyle,
-      el.roughness, el.fillStyle, el.opacity,
-      el.points ? el.points.length : 0,
-      el.text ? el.text.length : 0,
-      el.imageData ? 1 : 0,
-      el.updated || 0,
-    ].join(':')
-  ).join('|');
-
-  // Include more of appState that affects view/selection
-  const appStateSignature = [
-    appState.viewTransform.x,
-    appState.viewTransform.y,
-    appState.viewTransform.zoom,
-    appState.selectedElementIds.join(','),
-    appState.activeTool,
-    appState.isToolLocked ? 1 : 0,
-  ].join(':');
-
-  return `${elementsSignature}|${appStateSignature}`;
+/**
+ * Generates a hash for quick equality checks
+ */
+function generateHash(elements: ExcalidrawElement[]): string {
+  return elements
+    .map(el => `${el.id}:${el.updated}:${el.x}:${el.y}:${el.width}:${el.height}`)
+    .join('|');
 }
 
 export function useUndoRedo() {
-  const [state, setState] = useState({
-    history: [] as HistoryState[],
-    index: -1,
-    lastSignature: ''
-  });
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(-1);
+  const lastHash = useRef<string>('');
+  const isInitialized = useRef(false);
+  const currentIndexRef = useRef(-1);
 
+  // Keep ref in sync with state
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
+  /**
+   * Initialize history with the first state
+   */
   const initialize = useCallback((elements: ExcalidrawElement[], appState: AppState) => {
-    console.log('🎯 Initialize called');
-    
-    setState(prev => {
-      if (prev.history.length === 0) {
-        const initial = deepCopyState(elements, appState);
-        const signature = generateStateSignature(elements, appState);
-        
-        console.log('✅ Initializing history');
-        
-        return {
-          history: [initial],
-          index: 0,
-          lastSignature: signature
-        };
-      }
-      return prev;
-    });
+    if (isInitialized.current) {
+      console.log('⏭️ Already initialized, skipping');
+      return;
+    }
+
+    const entry = cloneEntry(elements, appState);
+    const hash = generateHash(elements);
+
+    setHistory([entry]);
+    setCurrentIndex(0);
+    lastHash.current = hash;
+    isInitialized.current = true;
+
+    console.log('📚 History initialized with', elements.length, 'elements');
   }, []);
 
+  /**
+   * Save current state to history
+   */
   const saveState = useCallback((elements: ExcalidrawElement[], appState: AppState) => {
-    const signature = generateStateSignature(elements, appState);
-    
-    setState(prev => {
-      console.log('💾 saveState:', {
-        elementsCount: elements.length,
-        currentIndex: prev.index,
-        historyLength: prev.history.length,
-        willSave: signature !== prev.lastSignature
-      });
-      
-      if (signature === prev.lastSignature) {
-        console.log('⏭️ Skipping save - unchanged');
-        return prev;
-      }
+    const hash = generateHash(elements);
 
-      const nextState = deepCopyState(elements, appState);
-      const base = prev.history.slice(0, prev.index + 1);
-      const newHistory = [...base, nextState];
+    // Skip if state hasn't changed
+    if (hash === lastHash.current) {
+      console.log('⏭️ Skipping save - no changes detected');
+      return;
+    }
+
+    console.log('💾 Saving state to history, elements:', elements.length);
+
+    const entry = cloneEntry(elements, appState);
+
+    setHistory(prev => {
+      // Use ref for current index since state might be stale
+      const idx = currentIndexRef.current;
       
-      console.log('📚 History updated:', {
-        newLength: newHistory.length,
-        newIndex: prev.index + 1
-      });
+      // Remove any "future" history after current index
+      const newHistory = prev.slice(0, idx + 1);
       
-      return {
-        history: newHistory.length > 50 ? newHistory.slice(1) : newHistory,
-        index: Math.min(prev.index + 1, 49),
-        lastSignature: signature
-      };
+      // Add new entry
+      newHistory.push(entry);
+      
+      const newIndex = newHistory.length - 1;
+      
+      console.log('📚 History updated - size:', newHistory.length, 'new index:', newIndex);
+      
+      // Update index
+      setCurrentIndex(newIndex);
+      
+      // Limit history size
+      if (newHistory.length > MAX_HISTORY) {
+        const trimmed = newHistory.slice(1);
+        setCurrentIndex(newIndex - 1);
+        return trimmed;
+      }
+      
+      return newHistory;
     });
+
+    lastHash.current = hash;
   }, []);
 
-  const undo = useCallback((): HistoryState | null => {
-    let result: HistoryState | null = null;
+  /**
+   * Undo to previous state
+   */
+  const undo = useCallback((): HistoryEntry | null => {
+    const idx = currentIndexRef.current;
     
-    setState(prev => {
-      console.log('🔙 Undo:', { index: prev.index, historyLength: prev.history.length });
-      
-      if (prev.index <= 0 || prev.history.length === 0) {
-        console.log('❌ Cannot undo');
-        return prev;
-      }
-      
-      const newIndex = prev.index - 1;
-      const state = prev.history[newIndex];
-      
-      if (state) {
-        console.log('✅ Undo successful:', { newIndex, elementsCount: state.elements.length });
-        result = deepCopyState(state.elements, state.appState);
-        
-        return {
-          ...prev,
-          index: newIndex,
-          lastSignature: generateStateSignature(state.elements, state.appState)
-        };
-      }
-      
-      console.log('❌ No state at index:', newIndex);
-      return prev;
-    });
-    
-    return result;
-  }, []);
+    if (idx <= 0) {
+      console.log('❌ Cannot undo - at beginning of history');
+      return null;
+    }
 
-  const redo = useCallback((): HistoryState | null => {
-    let result: HistoryState | null = null;
-    
-    setState(prev => {
-      console.log('🔜 Redo:', { index: prev.index, historyLength: prev.history.length });
-      
-      if (prev.index >= prev.history.length - 1) {
-        console.log('❌ Cannot redo');
-        return prev;
-      }
-      
-      const newIndex = prev.index + 1;
-      const state = prev.history[newIndex];
-      
-      if (state) {
-        console.log('✅ Redo successful:', { newIndex, elementsCount: state.elements.length });
-        result = deepCopyState(state.elements, state.appState);
-        
-        return {
-          ...prev,
-          index: newIndex,
-          lastSignature: generateStateSignature(state.elements, state.appState)
-        };
-      }
-      
-      return prev;
-    });
-    
-    return result;
-  }, []);
+    const newIndex = idx - 1;
+    const entry = history[newIndex];
 
+    if (!entry) {
+      console.log('❌ No entry at index', newIndex);
+      return null;
+    }
+
+    setCurrentIndex(newIndex);
+    lastHash.current = generateHash(entry.elements);
+    
+    console.log('↶ Undo to index', newIndex, 'of', history.length);
+    
+    // Return a deep copy to prevent mutation
+    return cloneEntry(entry.elements, entry.appState);
+  }, [history]);
+
+  /**
+   * Redo to next state
+   */
+  const redo = useCallback((): HistoryEntry | null => {
+    const idx = currentIndexRef.current;
+    
+    if (idx >= history.length - 1) {
+      console.log('❌ Cannot redo - at end of history');
+      return null;
+    }
+
+    const newIndex = idx + 1;
+    const entry = history[newIndex];
+
+    if (!entry) {
+      console.log('❌ No entry at index', newIndex);
+      return null;
+    }
+
+    setCurrentIndex(newIndex);
+    lastHash.current = generateHash(entry.elements);
+    
+    console.log('↷ Redo to index', newIndex, 'of', history.length);
+    
+    // Return a deep copy to prevent mutation
+    return cloneEntry(entry.elements, entry.appState);
+  }, [history]);
+
+  /**
+   * Clear all history and start fresh
+   */
   const clear = useCallback((elements: ExcalidrawElement[], appState: AppState) => {
-    setState(prev => {
-      const cleared = deepCopyState(elements, appState);
-      const base = prev.history.slice(0, prev.index + 1);
-      const newHistory = [...base, cleared];
-      
-      return {
-        history: newHistory.length > 50 ? newHistory.slice(1) : newHistory,
-        index: Math.min(prev.index + 1, 49),
-        lastSignature: generateStateSignature(elements, appState)
-      };
-    });
+    const entry = cloneEntry(elements, appState);
+    const hash = generateHash(elements);
+
+    setHistory([entry]);
+    setCurrentIndex(0);
+    lastHash.current = hash;
+
+    console.log('🗑️ History cleared');
+  }, []);
+
+  /**
+   * Reset the undo/redo system
+   */
+  const reset = useCallback(() => {
+    setHistory([]);
+    setCurrentIndex(-1);
+    lastHash.current = '';
+    isInitialized.current = false;
+
+    console.log('🔄 History reset');
   }, []);
 
   return {
@@ -183,8 +193,23 @@ export function useUndoRedo() {
     undo,
     redo,
     clear,
+    reset,
     initialize,
-    canUndo: state.index > 0,
-    canRedo: state.index < state.history.length - 1,
+    canUndo: currentIndex > 0,
+    canRedo: currentIndex < history.length - 1,
+    historySize: history.length,
+    currentIndex,
+    // Debug info
+    _debug: () => {
+      console.log('📊 History Debug:', {
+        historySize: history.length,
+        currentIndex,
+        currentIndexRef: currentIndexRef.current,
+        canUndo: currentIndex > 0,
+        canRedo: currentIndex < history.length - 1,
+        isInitialized: isInitialized.current,
+        lastHash: lastHash.current,
+      });
+    }
   };
 }

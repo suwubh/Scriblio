@@ -3,328 +3,295 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { ExcalidrawElement, AppState, ToolType } from '../types/excalidraw';
 import { useUndoRedo } from './useUndoRedo';
 
+const DEFAULT_APP_STATE: AppState = {
+  viewTransform: { x: 0, y: 0, zoom: 1 },
+  selectedElementIds: [],
+  activeTool: 'selection' as ToolType,
+  isToolLocked: false,
+  currentItemStrokeColor: '#000000',
+  currentItemBackgroundColor: 'transparent',
+  currentItemFillStyle: 'hachure',
+  currentItemStrokeWidth: 1,
+  currentItemStrokeStyle: 'solid',
+  currentItemRoughness: 1,
+  currentItemOpacity: 100,
+  currentItemFontFamily: 'Virgil',
+  currentItemFontSize: 20,
+  currentItemTextAlign: 'left',
+  currentItemStartArrowhead: null,
+  currentItemEndArrowhead: 'arrow',
+  editingElement: null,
+  draggingElement: null,
+  resizingElement: null,
+  multiElement: null,
+  isResizing: false,
+  isRotating: false,
+  showGrid: false,
+  snapToGrid: false,
+  zenModeEnabled: false,
+  theme: 'light',
+  exportBackground: true,
+  exportWithDarkMode: false,
+  width: window.innerWidth,
+  height: window.innerHeight,
+};
+
 export function useExcalidrawState() {
   const [elements, setElements] = useState<ExcalidrawElement[]>([]);
-  const [appState, setAppState] = useState<AppState>({
-    viewTransform: { x: 0, y: 0, zoom: 1 },
-    selectedElementIds: [],
-    activeTool: 'selection' as ToolType,
-    isToolLocked: false,
-    currentItemStrokeColor: '#000000',
-    currentItemBackgroundColor: 'transparent',
-    currentItemFillStyle: 'hachure',
-    currentItemStrokeWidth: 1,
-    currentItemStrokeStyle: 'solid',
-    currentItemRoughness: 1,
-    currentItemOpacity: 100,
-    currentItemFontFamily: 'Virgil',
-    currentItemFontSize: 20,
-    currentItemTextAlign: 'left',
-    currentItemStartArrowhead: null,
-    currentItemEndArrowhead: 'arrow',
-    editingElement: null,
-    draggingElement: null,
-    resizingElement: null,
-    multiElement: null,
-    isResizing: false,
-    isRotating: false,
-    showGrid: false,
-    snapToGrid: false,
-    zenModeEnabled: false,
-    theme: 'light',
-    exportBackground: true,
-    exportWithDarkMode: false,
-    width: window.innerWidth,
-    height: window.innerHeight,
-  });
-
+  const [appState, setAppState] = useState<AppState>(DEFAULT_APP_STATE);
+  
   const { saveState, undo, redo, clear, initialize, canUndo, canRedo } = useUndoRedo();
+  
+  // References
   const canvasAppRef = useRef<any>(null);
-  const isUndoRedoInProgress = useRef(false);
+  const undoRedoLock = useRef(false);
   const isInitialized = useRef(false);
-  const lastCommittedSignature = useRef<string>('');
 
-  // Initialize history once
+  // Initialize history once on mount
   useEffect(() => {
     if (!isInitialized.current) {
+      console.log('🎬 Initializing history with elements:', elements.length);
       initialize(elements, appState);
       isInitialized.current = true;
     }
-  }, [initialize, elements, appState]);
+  }, []); // Empty deps - run once on mount
 
-  // Add keyboard shortcuts
+  // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyboard = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey)) {
-        if (event.key === 'z' && !event.shiftKey) {
-          event.preventDefault();
-          performUndo();
-        } else if (event.key === 'y' || (event.key === 'z' && event.shiftKey)) {
-          event.preventDefault();
-          performRedo();
-        }
+    const handleKeyboard = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+
+      if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        performUndo();
+      } else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) {
+        e.preventDefault();
+        performRedo();
       }
     };
 
     document.addEventListener('keydown', handleKeyboard);
     return () => document.removeEventListener('keydown', handleKeyboard);
-  }, []);
+  }, [canUndo, canRedo]);
 
-  const generateSignature = useCallback((els: ExcalidrawElement[]) => {
-    return els
-      .map(el =>
-        [
-          el.id,
-          el.x, el.y, el.width, el.height, el.angle,
-          el.strokeColor, el.backgroundColor,
-          el.strokeWidth, el.strokeStyle, el.roughness, el.fillStyle,
-          el.opacity,
-          el.points?.length || 0,
-          el.text || '',
-          el.imageData ? 1 : 0,
-        ].join(':'),
-      )
-      .join('|');
-  }, []);
-
-  const commitScene = useCallback(
-    (nextElements: ExcalidrawElement[], nextAppState: AppState) => {
-      if (isUndoRedoInProgress.current) return;
-
-      const signature = generateSignature(nextElements);
-      if (signature !== lastCommittedSignature.current) {
-        saveState(nextElements, nextAppState);
-        lastCommittedSignature.current = signature;
-      }
-    },
-    [saveState, generateSignature]
-  );
-
+  /**
+   * Set canvas app reference
+   */
   const setCanvasAppRef = useCallback((app: any) => {
-    console.log('📌 Setting canvas app ref:', !!app)
-    canvasAppRef.current = app
+    console.log('📌 Canvas app ref set:', !!app);
+    canvasAppRef.current = app;
   }, []);
 
-  const updateAppState = useCallback(
-    (updates: Partial<AppState>) => {
-      console.log('🔄 updateAppState called with:', Object.keys(updates))
-      console.log('📱 canvasAppRef.current:', !!canvasAppRef.current)
+  /**
+   * Update app state and sync to canvas
+   */
+  const updateAppState = useCallback((updates: Partial<AppState>) => {
+    setAppState(prev => {
+      const next = { ...prev, ...updates };
       
-      setAppState(prev => {
-        const merged = { ...prev, ...updates }
-        
-        // ✅ Add proper null check and method verification
-        if (canvasAppRef.current && 
-            typeof canvasAppRef.current.updateAppState === 'function' && 
-            !isUndoRedoInProgress.current) {
-          console.log('✅ Calling canvasAppRef.current.updateAppState')
-          canvasAppRef.current.updateAppState(merged)
-        } else {
-          console.log('⏳ Skipping canvas update - not ready yet')
-        }
-
-        return merged
-      })
-    },
-    []
-  );
-
-  const setElementsFromCanvas = useCallback(
-    (newElements: ExcalidrawElement[]) => {
-      setElements(newElements);
-      
-      // Only commit if NOT during undo/redo
-      if (!isUndoRedoInProgress.current) {
-        commitScene(newElements, appState);
+      // Sync to canvas if available and not during undo/redo
+      if (canvasAppRef.current && !undoRedoLock.current) {
+        canvasAppRef.current.updateAppState(next);
       }
-    },
-    [commitScene, appState]
-  );
+      
+      return next;
+    });
+  }, []);
 
-  const addElement = useCallback(
-    (element: ExcalidrawElement) => {
-      if (isUndoRedoInProgress.current) return;
+  /**
+   * Handle elements change from canvas
+   */
+  const setElementsFromCanvas = useCallback((newElements: ExcalidrawElement[]) => {
+    console.log('🎨 setElementsFromCanvas called with', newElements.length, 'elements, lock:', undoRedoLock.current);
+    
+    setElements(newElements);
+    
+    // Save to history only if not during undo/redo
+    if (!undoRedoLock.current) {
+      console.log('💾 Saving to history from canvas');
+      saveState(newElements, appState);
+    } else {
+      console.log('🔒 Skipping save - undo/redo in progress');
+    }
+  }, [saveState, appState]);
 
-      setElements(prev => {
-        const next = [...prev, element];
-        commitScene(next, appState);
-        return next;
-      });
-    },
-    [commitScene, appState]
-  );
+  /**
+   * Add a new element
+   */
+  const addElement = useCallback((element: ExcalidrawElement) => {
+    if (undoRedoLock.current) return;
 
-  const updateElement = useCallback(
-    (id: string, updates: Partial<ExcalidrawElement>) => {
-      if (isUndoRedoInProgress.current) return;
+    setElements(prev => {
+      const next = [...prev, element];
+      saveState(next, appState);
+      
+      if (canvasAppRef.current) {
+        canvasAppRef.current.setElements(next);
+      }
+      
+      return next;
+    });
+  }, [saveState, appState]);
 
-      setElements(prev => {
-        const next = prev.map(el => (el.id === id ? { ...el, ...updates } : el));
-        commitScene(next, appState);
-        return next;
-      });
-    },
-    [commitScene, appState]
-  );
+  /**
+   * Update an existing element
+   */
+  const updateElement = useCallback((id: string, updates: Partial<ExcalidrawElement>) => {
+    if (undoRedoLock.current) return;
 
-  const deleteElements = useCallback(
-    (ids: string[]) => {
-      if (isUndoRedoInProgress.current) return;
+    setElements(prev => {
+      const next = prev.map(el => el.id === id ? { ...el, ...updates } : el);
+      saveState(next, appState);
+      
+      if (canvasAppRef.current) {
+        canvasAppRef.current.setElements(next);
+      }
+      
+      return next;
+    });
+  }, [saveState, appState]);
 
-      setElements(prev => {
-        const next = prev.filter(el => !ids.includes(el.id));
-        commitScene(next, appState);
-        return next;
-      });
-    },
-    [commitScene, appState]
-  );
+  /**
+   * Delete elements by IDs
+   */
+  const deleteElements = useCallback((ids: string[]) => {
+    if (undoRedoLock.current) return;
 
+    setElements(prev => {
+      const next = prev.filter(el => !ids.includes(el.id));
+      saveState(next, appState);
+      
+      if (canvasAppRef.current) {
+        canvasAppRef.current.setElements(next);
+      }
+      
+      return next;
+    });
+  }, [saveState, appState]);
+
+  /**
+   * Clear entire canvas
+   */
   const clearCanvas = useCallback(() => {
-    const resetAppState: AppState = {
-      ...appState,
-      selectedElementIds: [],
-      viewTransform: { x: 0, y: 0, zoom: 1 },
-      editingElement: null,
-      draggingElement: null,
-      resizingElement: null,
+    const resetState: AppState = {
+      ...DEFAULT_APP_STATE,
+      width: appState.width,
+      height: appState.height,
     };
 
     setElements([]);
-    setAppState(resetAppState);
-    clear([], resetAppState);
+    setAppState(resetState);
+    clear([], resetState);
 
     if (canvasAppRef.current) {
       canvasAppRef.current.setElements([]);
-      canvasAppRef.current.updateAppState(resetAppState);
+      canvasAppRef.current.updateAppState(resetState);
     }
 
-    lastCommittedSignature.current = '';
-  }, [appState, clear]);
+    console.log('🗑️ Canvas cleared');
+  }, [appState.width, appState.height, clear]);
 
+  /**
+   * Perform undo operation
+   */
   const performUndo = useCallback(() => {
-    console.log('🔄 UNDO clicked - canUndo:', canUndo, 'isInProgress:', isUndoRedoInProgress.current);
-    
-    if (!canUndo) {
-      console.log('❌ Cannot undo - no history available');
-      return;
-    }
+    if (!canUndo || undoRedoLock.current) return;
 
-    if (isUndoRedoInProgress.current) {
-      console.log('⚠️ Undo already in progress, skipping');
-      return;
-    }
+    console.log('↶ Performing undo...');
+    undoRedoLock.current = true;
 
-    isUndoRedoInProgress.current = true;
-    console.log('🔒 Undo lock acquired');
-    
     const prevState = undo();
-    
+
     if (prevState) {
-      console.log('📚 Undo successful, restoring state with', prevState.elements.length, 'elements');
-      
-      // Update React state first
+      // Update React state
       setElements(prevState.elements);
       setAppState(prevState.appState);
 
-      // Use requestAnimationFrame for better timing with canvas updates
+      // Update canvas after state update
       requestAnimationFrame(() => {
         if (canvasAppRef.current) {
-          console.log('🎨 Updating canvas with undo state');
-          try {
-            canvasAppRef.current.setElements(prevState.elements);
-            canvasAppRef.current.updateAppState(prevState.appState);
-            console.log('✅ Canvas updated successfully');
-          } catch (error) {
-            console.error('❌ Failed to update canvas during undo:', error);
-          }
-        } else {
-          console.log('⚠️ Canvas ref not available during undo');
+          canvasAppRef.current.setElements(prevState.elements);
+          canvasAppRef.current.updateAppState(prevState.appState);
         }
-        
-        // Update signature after canvas update
-        lastCommittedSignature.current = generateSignature(prevState.elements);
-        
-        // Release lock with longer timeout to ensure all updates complete
+
+        // Release lock after updates complete
         setTimeout(() => {
-          isUndoRedoInProgress.current = false;
-          console.log('🔓 Undo lock released');
-        }, 100);
+          undoRedoLock.current = false;
+          console.log('✅ Undo complete');
+        }, 50);
       });
     } else {
-      console.log('❌ Undo returned null state');
-      isUndoRedoInProgress.current = false;
+      undoRedoLock.current = false;
     }
-  }, [undo, canUndo, generateSignature]);
+  }, [undo, canUndo]);
 
+  /**
+   * Perform redo operation
+   */
   const performRedo = useCallback(() => {
-    console.log('🔄 REDO clicked - canRedo:', canRedo, 'isInProgress:', isUndoRedoInProgress.current);
-    
-    if (!canRedo) {
-      console.log('❌ Cannot redo - no future history available');
-      return;
-    }
+    if (!canRedo || undoRedoLock.current) return;
 
-    if (isUndoRedoInProgress.current) {
-      console.log('⚠️ Redo already in progress, skipping');
-      return;
-    }
+    console.log('↷ Performing redo...');
+    undoRedoLock.current = true;
 
-    isUndoRedoInProgress.current = true;
-    console.log('🔒 Redo lock acquired');
-    
     const nextState = redo();
-    
+
     if (nextState) {
-      console.log('📚 Redo successful, restoring state with', nextState.elements.length, 'elements');
-      
-      // Update React state first
+      // Update React state
       setElements(nextState.elements);
       setAppState(nextState.appState);
 
-      // Use requestAnimationFrame for better timing with canvas updates
+      // Update canvas after state update
       requestAnimationFrame(() => {
         if (canvasAppRef.current) {
-          console.log('🎨 Updating canvas with redo state');
-          try {
-            canvasAppRef.current.setElements(nextState.elements);
-            canvasAppRef.current.updateAppState(nextState.appState);
-            console.log('✅ Canvas updated successfully');
-          } catch (error) {
-            console.error('❌ Failed to update canvas during redo:', error);
-          }
-        } else {
-          console.log('⚠️ Canvas ref not available during redo');
+          canvasAppRef.current.setElements(nextState.elements);
+          canvasAppRef.current.updateAppState(nextState.appState);
         }
-        
-        // Update signature after canvas update
-        lastCommittedSignature.current = generateSignature(nextState.elements);
-        
-        // Release lock with longer timeout to ensure all updates complete
+
+        // Release lock after updates complete
         setTimeout(() => {
-          isUndoRedoInProgress.current = false;
-          console.log('🔓 Redo lock released');
-        }, 100);
+          undoRedoLock.current = false;
+          console.log('✅ Redo complete');
+        }, 50);
       });
     } else {
-      console.log('❌ Redo returned null state');
-      isUndoRedoInProgress.current = false;
+      undoRedoLock.current = false;
     }
-  }, [redo, canRedo, generateSignature]);
+  }, [redo, canRedo]);
 
   return {
+    // State
     elements,
     appState,
+    
+    // State updates
     updateAppState,
+    setElementsFromCanvas,
+    
+    // Element operations
     addElement,
     updateElement,
     deleteElements,
+    
+    // Canvas operations
     clearCanvas,
+    setCanvasAppRef,
+    
+    // Undo/Redo
     undo: performUndo,
     redo: performRedo,
     canUndo,
     canRedo,
-    setCanvasAppRef,
-    setElementsFromCanvas,
+    
+    // Debug
+    _debugHistory: () => {
+      console.log('📊 State Debug:', {
+        elementsCount: elements.length,
+        canUndo,
+        canRedo,
+        undoRedoLock: undoRedoLock.current,
+        hasCanvasRef: !!canvasAppRef.current,
+      });
+    }
   };
 }

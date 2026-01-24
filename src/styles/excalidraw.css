@@ -45,6 +45,13 @@ html, body, #root {
   gap: 1rem;
 }
 
+.topbar-title {
+  font-size: 2.5rem; /* try 2.5rem, 3rem, 4rem */
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+
 /* Topbar sections */
 .topbar-left {
   display: flex;
