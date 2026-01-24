@@ -11,8 +11,15 @@ export class EventHandler {
   private isDragging = false;
   private dragOffsets: Map<string, Point> = new Map();
   private selectionRect: { start: Point; current: Point } | null = null;
-
   private onElementsCommitted?: (elements: ExcalidrawElement[]) => void;
+
+  // ✅ FIX #1: Store bound handlers for proper cleanup
+  private boundHandlers = {
+    pointerdown: this.handlePointerDown.bind(this),
+    pointermove: this.handlePointerMove.bind(this),
+    pointerup: this.handlePointerUp.bind(this),
+    wheel: this.handleWheel.bind(this)
+  };
 
   constructor(canvas: HTMLCanvasElement, appState: AppState) {
     this.canvas = canvas;
@@ -40,16 +47,30 @@ export class EventHandler {
     }
   }
 
+  // ✅ FIX #1: Use bound handlers
   private setupEventListeners() {
-    this.canvas.addEventListener('pointerdown', this.handlePointerDown.bind(this));
-    this.canvas.addEventListener('pointermove', this.handlePointerMove.bind(this));
-    this.canvas.addEventListener('pointerup', this.handlePointerUp.bind(this));
-    this.canvas.addEventListener('wheel', this.handleWheel.bind(this), { passive: false });
+    this.canvas.addEventListener('pointerdown', this.boundHandlers.pointerdown);
+    this.canvas.addEventListener('pointermove', this.boundHandlers.pointermove);
+    this.canvas.addEventListener('pointerup', this.boundHandlers.pointerup);
+    this.canvas.addEventListener('wheel', this.boundHandlers.wheel, { passive: false });
+  }
+
+  // ✅ FIX #1: Add proper cleanup method
+  public destroy() {
+    this.canvas.removeEventListener('pointerdown', this.boundHandlers.pointerdown);
+    this.canvas.removeEventListener('pointermove', this.boundHandlers.pointermove);
+    this.canvas.removeEventListener('pointerup', this.boundHandlers.pointerup);
+    this.canvas.removeEventListener('wheel', this.boundHandlers.wheel);
+    
+    // Clean up references
+    this.onElementsChanged = undefined;
+    this.onElementsCommitted = undefined;
+    this.elements = [];
+    this.dragOffsets.clear();
   }
 
   private commitNow() {
     if (this.onElementsCommitted) {
-      // Deep copy to avoid shared refs
       const deep = JSON.parse(JSON.stringify(this.elements)) as ExcalidrawElement[];
       this.onElementsCommitted(deep);
     }
@@ -199,7 +220,7 @@ export class EventHandler {
       if (element && offset) {
         element.x = point.x - offset.x;
         element.y = point.y - offset.y;
-        element.updated = Date.now(); // FIX: Update timestamp for undo/redo
+        element.updated = Date.now();
       }
     }
   }
@@ -345,6 +366,8 @@ export class EventHandler {
     };
 
     this.elements.push(element);
+    this.notifyElementsChanged();
+    this.commitNow();
   }
 
   private startCreatingImage(point: Point) {
@@ -391,6 +414,8 @@ export class EventHandler {
             };
 
             this.elements.push(element);
+            this.notifyElementsChanged();
+            this.commitNow();
           };
           img.src = e.target?.result as string;
         };
@@ -452,7 +477,7 @@ export class EventHandler {
       element.height = point.y - element.y;
     }
 
-    element.updated = Date.now(); // FIX: Update timestamp for undo/redo
+    element.updated = Date.now();
   }
 
   private finalizeElement() {
@@ -472,7 +497,7 @@ export class EventHandler {
       }
 
       this.appState.editingElement = null;
-      this.commitNow(); 
+      this.commitNow();
     }
   }
 
