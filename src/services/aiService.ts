@@ -30,28 +30,62 @@ export interface ImageGenerationRequest {
 }
 
 class AIService {
-  private readonly apiEndpoint = 'https://api.anthropic.com/v1/messages';
   private readonly model = 'claude-sonnet-4-20250514';
+  
+  // Use proxy server for local development, direct API for claude.ai
+  private readonly useProxy = import.meta.env.DEV; // true in development
+  private readonly proxyEndpoint = import.meta.env.VITE_PROXY_URL || 'http://localhost:3001/api/chat';
+  private readonly directEndpoint = 'https://api.anthropic.com/v1/messages';
+
+  /**
+   * Get the appropriate API endpoint
+   */
+  private getEndpoint(): string {
+    return this.useProxy ? this.proxyEndpoint : this.directEndpoint;
+  }
 
   /**
    * Send a chat message to Claude AI
    */
   async chat(request: AIRequest): Promise<AIResponse> {
     try {
-      const response = await fetch(this.apiEndpoint, {
+      const endpoint = this.getEndpoint();
+      console.log(`🤖 Using endpoint: ${endpoint} (proxy: ${this.useProxy})`);
+
+      const requestBody = this.useProxy
+        ? {
+            // Proxy server format
+            messages: request.messages,
+            temperature: request.temperature || 0.7,
+            maxTokens: request.maxTokens || 1000,
+            model: this.model,
+          }
+        : {
+            // Direct API format
+            model: this.model,
+            max_tokens: request.maxTokens || 1000,
+            messages: request.messages,
+            temperature: request.temperature || 0.7,
+          };
+
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add Anthropic headers only for direct API calls
+      if (!this.useProxy) {
+        headers['anthropic-version'] = '2023-06-01';
+      }
+
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: this.model,
-          max_tokens: request.maxTokens || 1000,
-          messages: request.messages,
-          temperature: request.temperature || 0.7,
-        }),
+        headers,
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ API error:', response.status, errorText);
         throw new Error(`AI API error: ${response.statusText}`);
       }
 
