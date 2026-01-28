@@ -25,7 +25,8 @@ interface CollaborationProviderProps {
   config: CollaborationConfig & {
     redisWsUrl?: string
     userId: string
-  }
+  };
+  onError?: (error: Error) => void
 }
 
 export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({ 

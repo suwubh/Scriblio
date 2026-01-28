@@ -9,8 +9,11 @@ import { CollaborationProvider, PresenceProvider } from './collaboration'
 import { generateUserId, generateUserColor } from './collaboration'
 import { ConnectionStatus } from './components/ConnectionStatus'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { AICommandPalette } from './components/AICommandPalette'
 import './styles/excalidraw.css'
-import { AppState } from './types/excalidraw'
+import './styles/ai-modal.css'
+import './styles/ai-command-palette.css'
+import { AppState, ExcalidrawElement } from './types/excalidraw'
 
 // Generate user info
 const userId = generateUserId()
@@ -99,6 +102,13 @@ function AppContent() {
       }
     }
     input.click()
+  }
+
+  // Handle AI-generated elements
+  const handleAddAIElements = (aiElements: Partial<ExcalidrawElement>[]) => {
+    aiElements.forEach((element) => {
+      addElement(element as ExcalidrawElement)
+    })
   }
 
   const selectedElements = elements.filter(el =>
@@ -193,6 +203,13 @@ function AppContent() {
         onDeleteElements={deleteElements}
         onUpdateElement={updateElement}
         onPropertyChange={(updates: Partial<AppState>) => updateAppState(updates)}
+      />
+
+      {/* AI Command Palette */}
+      <AICommandPalette
+        elements={elements}
+        selectedElements={selectedElements}
+        onAddElements={handleAddAIElements}
       />
 
       {isPanelOpen && (

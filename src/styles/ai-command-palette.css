@@ -1,0 +1,104 @@
+/* src/styles/ai-command-palette.css */
+
+/* Floating AI Button */
+.ai-floating-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  animation: aiButtonPulse 2s ease-in-out infinite;
+}
+
+@keyframes aiButtonPulse {
+  0%, 100% {
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  }
+  50% {
+    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.6);
+  }
+}
+
+.ai-floating-btn:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
+  animation: none;
+}
+
+.ai-floating-btn:active {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.ai-floating-icon {
+  font-size: 1.2rem;
+  animation: sparkle 1.5s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.2) rotate(-10deg);
+  }
+  75% {
+    transform: scale(1.2) rotate(10deg);
+  }
+}
+
+.ai-floating-text {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.ai-floating-shortcut {
+  padding: 0.2rem 0.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ai-floating-btn {
+    bottom: 1rem;
+    right: 1rem;
+    padding: 0.6rem 1rem;
+  }
+
+  .ai-floating-text {
+    display: none;
+  }
+
+  .ai-floating-shortcut {
+    display: none;
+  }
+
+  .ai-floating-icon {
+    font-size: 1.5rem;
+  }
+}
+
+/* Make button more prominent on mobile */
+@media (max-width: 480px) {
+  .ai-floating-btn {
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+  }
+}
