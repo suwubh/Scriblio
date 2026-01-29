@@ -23,6 +23,15 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+:root {
+  --ai-accent: var(--accent);
+  --ai-bg: var(--btn-bg);
+  --ai-bg-hover: var(--btn-bg-hover);
+  --ai-border: var(--border);
+  --ai-muted: var(--muted);
+}
+
+
 a {
   font-weight: 500;
   color: #646cff;
