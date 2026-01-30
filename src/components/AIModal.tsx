@@ -1,4 +1,4 @@
-// src/components/AIModal.tsx - IMPROVED VERSION
+// src/components/AIModal.tsx
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { aiService, AIMessage } from '../services/aiService';
@@ -118,9 +118,9 @@ export const AIModal: React.FC<AIModalProps> = ({
                 angle: el.angle ?? 0,
                 strokeColor: el.strokeColor ?? '#000000',
                 backgroundColor: el.backgroundColor ?? 'transparent',
-                fillStyle: (el.fillStyle ?? 'hachure') as const,
+                fillStyle: (el.fillStyle ?? 'hachure') as 'hachure' | 'solid' | 'cross-hatch',
                 strokeWidth: el.strokeWidth ?? 2,
-                strokeStyle: (el.strokeStyle ?? 'solid') as const,
+                strokeStyle: (el.strokeStyle ?? 'solid') as 'solid' | 'dashed' | 'dotted',
                 roughness: el.roughness ?? 1,
                 opacity: el.opacity ?? 1,
                 seed: Math.floor(Math.random() * 1_000_000),
