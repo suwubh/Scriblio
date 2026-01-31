@@ -1,4 +1,3 @@
-// src/collaboration/providers/CollaborationProvider.tsx
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { WebrtcProvider } from 'y-webrtc'
 import { WebsocketProvider } from 'y-websocket'
@@ -47,7 +46,6 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
     synced: false,
   })
 
-  // 🔒 FIX: Track initialization state
   const isInitializing = useRef(false)
   const hasInitialized = useRef(false)
 
@@ -67,7 +65,6 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
   const documentManager = documentManagerRef.current
   const webrtcManager = webrtcManagerRef.current
 
-  // 🔒 FIX: Single initialization with race condition prevention
   useEffect(() => {
     // Prevent multiple initializations
     if (hasInitialized.current || isInitializing.current) {
@@ -162,7 +159,6 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
       isInitializing.current = false
     }
 
-    // 🔒 FIX: Comprehensive cleanup
     return () => {
       console.log('🧹 Cleaning up collaboration providers...')
       
@@ -174,9 +170,8 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
       hasInitialized.current = false
       isInitializing.current = false
     }
-  }, [config.roomId, config.userId]) // 🔒 FIX: Only reinitialize if room or user changes
+  }, [config.roomId, config.userId])
 
-  // 🔒 FIX: Separate cleanup for managers on unmount
   useEffect(() => {
     return () => {
       console.log('🧹 Final cleanup of managers...')
@@ -184,9 +179,8 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
       webrtcManager.destroy()
       redisManagerRef.current?.destroy()
     }
-  }, []) // 🔒 Only on unmount
+  }, [])
 
-  // 🔒 FIX: Error state UI
   if (error) {
     return (
       <div style={{

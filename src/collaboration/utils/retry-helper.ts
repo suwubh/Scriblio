@@ -1,5 +1,3 @@
-// src/collaboration/utils/retry-helper.ts
-
 export interface RetryOptions {
   maxAttempts: number
   delayMs: number

@@ -1,4 +1,3 @@
-// src/collaboration/managers/RedisManager.ts - FIXED VERSION
 
 export interface RedisPresenceMessage {
   type: 'join' | 'leave' | 'update'
