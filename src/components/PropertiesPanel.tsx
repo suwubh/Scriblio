@@ -1,4 +1,3 @@
-// src/components/PropertiesPanel.tsx
 import { ExcalidrawElement, AppState } from '../types/excalidraw';
 
 interface PropertiesPanelProps {

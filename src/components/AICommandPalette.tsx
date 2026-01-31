@@ -1,4 +1,3 @@
-// src/components/AICommandPalette.tsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AIModal } from './AIModal';
 import { ExcalidrawElement } from '../types/excalidraw';
@@ -57,7 +56,6 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
 
   return (
     <>
-      {/* Floating AI Button */}
       <button
         className="ai-floating-btn"
         onClick={() => setIsOpen(true)}
@@ -73,7 +71,6 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
         </kbd>
       </button>
 
-      {/* AI Modal */}
       <AIModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}

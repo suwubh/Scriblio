@@ -1,4 +1,3 @@
-// src/components/MainMenu.tsx
 import { useState, useRef, useEffect } from 'react';
 
 interface MainMenuProps {

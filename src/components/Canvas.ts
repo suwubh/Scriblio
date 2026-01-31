@@ -1,4 +1,3 @@
-
 import { CanvasRenderer } from '../engine/renderer';
 import { EventHandler } from '../engine/eventHandler';
 import { AppState, ExcalidrawElement } from '../types/excalidraw';

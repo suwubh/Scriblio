@@ -1,4 +1,3 @@
-// src/components/Footer.tsx
 interface FooterProps {
   viewTransform: { x: number; y: number; zoom: number };
   selectedCount: number;

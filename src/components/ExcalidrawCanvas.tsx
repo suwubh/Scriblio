@@ -1,4 +1,3 @@
-// src/components/ExcalidrawCanvas.tsx
 import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
 import { CanvasApp } from './Canvas'
 import { ExcalidrawElement, AppState } from '../types/excalidraw'
@@ -22,8 +21,8 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
   ({ appState, onAppStateChange, elements, onElementsChange, onCanvasAppReady }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const appRef = useRef<CanvasApp | null>(null)
-    const isInitializing = useRef(false) // 🔒 Track initialization state
-    const hasInitialized = useRef(false) // 🔒 Track if ever initialized
+    const isInitializing = useRef(false)
+    const hasInitialized = useRef(false) 
 
     const { users, updateCursor } = usePresence()
 
@@ -37,7 +36,6 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
       },
     }))
 
-    // 🔒 FIX: Single initialization with proper cleanup
     useEffect(() => {
       // Prevent multiple initializations
       if (!canvasRef.current || hasInitialized.current || isInitializing.current) {
@@ -51,13 +49,11 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
         const canvasApp = new CanvasApp(canvasRef.current, appState)
         appRef.current = canvasApp
 
-        // Wire engine -> React
         canvasApp.setOnElementsMutated((els) => onElementsChange(els))
         canvasApp.setOnAppStateMutated((st) => onAppStateChange(st))
 
         // Notify parent that canvas app is ready
         if (onCanvasAppReady) {
-          console.log('📡 Notifying parent that CanvasApp is ready')
           onCanvasAppReady(canvasApp)
         }
 
@@ -74,7 +70,6 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
         handleResize()
         window.addEventListener('resize', handleResize)
 
-        // 🔒 FIX: Proper cleanup function
         return () => {
           console.log('🧹 Cleaning up CanvasApp...')
           window.removeEventListener('resize', handleResize)
@@ -92,9 +87,8 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
         isInitializing.current = false
         return undefined
       }
-    }, []) // 🔒 FIX: Empty deps - initialize only once
+    }, []) 
 
-    // 🔒 FIX: Separate effect for appState sync (only after initialization)
     useEffect(() => {
       if (hasInitialized.current && 
           appRef.current && 
@@ -103,7 +97,6 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
       }
     }, [appState])
 
-    // 🔒 FIX: Separate effect for elements sync (only after initialization)
     useEffect(() => {
       if (hasInitialized.current && 
           elements !== undefined && 
@@ -113,7 +106,6 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
       }
     }, [elements])
 
-    // Tool cursor effect (unchanged)
     useEffect(() => {
       if (!canvasRef.current) return
 
@@ -124,7 +116,7 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
       }
     }, [appState.activeTool])
 
-    // Mouse tracking for collaboration (unchanged)
+    // Mouse tracking for collaboration
     const handleMouseMove = (e: React.MouseEvent) => {
       const rect = canvasRef.current?.getBoundingClientRect()
       if (rect) {

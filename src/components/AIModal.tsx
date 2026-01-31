@@ -1,5 +1,3 @@
-// src/components/AIModal.tsx
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { aiService, AIMessage } from '../services/aiService';
 import { ExcalidrawElement } from '../types/excalidraw';
@@ -102,7 +100,7 @@ export const AIModal: React.FC<AIModalProps> = ({
               throw new Error('No elements were generated');
             }
 
-            // Transform AI elements to full Excalidraw elements
+            // Transform AI elements to full Scriblio elements
             const elementsToAdd = generatedElements.map((el: any, index: number) => {
               // Calculate position in a grid if not specified
               const gridX = 100 + (index % 4) * 180;
@@ -136,7 +134,6 @@ export const AIModal: React.FC<AIModalProps> = ({
           } catch (genError: any) {
             console.error('Generation error:', genError);
             
-            // Provide helpful error message
             let errorMsg = 'Failed to generate diagram. ';
             
             if (genError.message.includes('JSON')) {

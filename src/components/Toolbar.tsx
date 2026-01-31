@@ -1,4 +1,3 @@
-// src/components/Toolbar.tsx
 import { AppState, ToolType } from '../types/excalidraw';
 
 interface ToolbarProps {

@@ -1,4 +1,3 @@
-// src/components/ConnectionStatus.tsx (Enhanced)
 import React from 'react'
 import { useCollaboration, usePresence } from '../collaboration'
 import { useCollaborationContext } from '../collaboration/providers/CollaborationProvider'
