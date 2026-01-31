@@ -1,5 +1,3 @@
-// src/types/excalidraw.ts
-
 export interface Point {
   x: number;
   y: number;

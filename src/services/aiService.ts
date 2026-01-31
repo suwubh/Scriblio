@@ -1,5 +1,3 @@
-// src/services/aiService.ts - FIXED VERSION
-
 export interface AIMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;

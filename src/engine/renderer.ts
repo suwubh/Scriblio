@@ -1,4 +1,3 @@
-// src/engine/renderer.ts
 import rough from 'roughjs';
 import { ExcalidrawElement, AppState } from '../types/excalidraw';
 

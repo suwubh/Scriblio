@@ -1,4 +1,3 @@
-// src/hooks/useExcalidrawState.ts
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { ExcalidrawElement, AppState, ToolType } from '../types/excalidraw';
 import { useUndoRedo } from './useUndoRedo';

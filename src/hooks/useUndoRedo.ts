@@ -1,4 +1,3 @@
-// src/hooks/useUndoRedo.ts
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { ExcalidrawElement, AppState } from '../types/excalidraw';
 
@@ -9,9 +8,8 @@ interface HistoryEntry {
 
 const MAX_HISTORY = 50;
 
-/**
- * Creates a deep copy of the history entry
- */
+//Creates a deep copy of the history entry
+
 function cloneEntry(elements: ExcalidrawElement[], appState: AppState): HistoryEntry {
   return {
     elements: JSON.parse(JSON.stringify(elements)),
@@ -19,9 +17,8 @@ function cloneEntry(elements: ExcalidrawElement[], appState: AppState): HistoryE
   };
 }
 
-/**
- * Generates a hash for quick equality checks
- */
+//Generates a hash for quick equality checks
+
 function generateHash(elements: ExcalidrawElement[]): string {
   return elements
     .map(el => `${el.id}:${el.updated}:${el.x}:${el.y}:${el.width}:${el.height}`)

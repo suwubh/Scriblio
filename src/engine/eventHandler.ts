@@ -1,5 +1,3 @@
-// src/engine/eventHandler.ts
-
 import { ExcalidrawElement, AppState, Point } from '../types/excalidraw';
 
 export class EventHandler {
@@ -13,7 +11,6 @@ export class EventHandler {
   private selectionRect: { start: Point; current: Point } | null = null;
   private onElementsCommitted?: (elements: ExcalidrawElement[]) => void;
 
-  // ✅ FIX #1: Store bound handlers for proper cleanup
   private boundHandlers = {
     pointerdown: this.handlePointerDown.bind(this),
     pointermove: this.handlePointerMove.bind(this),
@@ -47,7 +44,6 @@ export class EventHandler {
     }
   }
 
-  // ✅ FIX #1: Use bound handlers
   private setupEventListeners() {
     this.canvas.addEventListener('pointerdown', this.boundHandlers.pointerdown);
     this.canvas.addEventListener('pointermove', this.boundHandlers.pointermove);
@@ -55,14 +51,12 @@ export class EventHandler {
     this.canvas.addEventListener('wheel', this.boundHandlers.wheel, { passive: false });
   }
 
-  // ✅ FIX #1: Add proper cleanup method
   public destroy() {
     this.canvas.removeEventListener('pointerdown', this.boundHandlers.pointerdown);
     this.canvas.removeEventListener('pointermove', this.boundHandlers.pointermove);
     this.canvas.removeEventListener('pointerup', this.boundHandlers.pointerup);
     this.canvas.removeEventListener('wheel', this.boundHandlers.wheel);
     
-    // Clean up references
     this.onElementsChanged = undefined;
     this.onElementsCommitted = undefined;
     this.elements = [];
