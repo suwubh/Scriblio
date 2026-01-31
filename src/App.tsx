@@ -1,4 +1,3 @@
-// src/App.tsx
 import { useRef, useState } from 'react'
 import { ExcalidrawCanvas, ExcalidrawCanvasRef } from './components/ExcalidrawCanvas'
 import { Toolbar } from './components/Toolbar'
@@ -15,7 +14,6 @@ import './styles/ai-modal.css'
 import './styles/ai-command-palette.css'
 import { AppState, ExcalidrawElement } from './types/excalidraw'
 
-// Generate user info
 const userId = generateUserId()
 const userName = `User ${userId.slice(-4)}`
 const userColor = generateUserColor()
@@ -104,7 +102,6 @@ function AppContent() {
     input.click()
   }
 
-  // Handle AI-generated elements
   const handleAddAIElements = (aiElements: Partial<ExcalidrawElement>[]) => {
     aiElements.forEach((element) => {
       addElement(element as ExcalidrawElement)
@@ -205,7 +202,6 @@ function AppContent() {
         onPropertyChange={(updates: Partial<AppState>) => updateAppState(updates)}
       />
 
-      {/* AI Command Palette */}
       <AICommandPalette
         elements={elements}
         selectedElements={selectedElements}
@@ -234,7 +230,7 @@ export default function App() {
 
   const handleCollaborationError = (error: Error) => {
     console.error('Collaboration error:', error)
-    // You could show a toast notification here
+    // Todo: Toast notification 
   }
 
   return (
