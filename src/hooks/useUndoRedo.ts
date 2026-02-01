@@ -42,7 +42,7 @@ export function useUndoRedo() {
    */
   const initialize = useCallback((elements: ExcalidrawElement[], appState: AppState) => {
     if (isInitialized.current) {
-      console.log('⏭️ Already initialized, skipping');
+      console.log(' Already initialized, skipping');
       return;
     }
 
@@ -54,7 +54,7 @@ export function useUndoRedo() {
     lastHash.current = hash;
     isInitialized.current = true;
 
-    console.log('📚 History initialized with', elements.length, 'elements');
+    console.log(' History initialized with', elements.length, 'elements');
   }, []);
 
   /**
@@ -65,11 +65,11 @@ export function useUndoRedo() {
 
     // Skip if state hasn't changed
     if (hash === lastHash.current) {
-      console.log('⏭️ Skipping save - no changes detected');
+      console.log(' Skipping save - no changes detected');
       return;
     }
 
-    console.log('💾 Saving state to history, elements:', elements.length);
+    console.log(' Saving state to history, elements:', elements.length);
 
     const entry = cloneEntry(elements, appState);
 
@@ -85,7 +85,7 @@ export function useUndoRedo() {
       
       const newIndex = newHistory.length - 1;
       
-      console.log('📚 History updated - size:', newHistory.length, 'new index:', newIndex);
+      console.log(' History updated - size:', newHistory.length, 'new index:', newIndex);
       
       // Update index
       setCurrentIndex(newIndex);
@@ -110,7 +110,7 @@ export function useUndoRedo() {
     const idx = currentIndexRef.current;
     
     if (idx <= 0) {
-      console.log('❌ Cannot undo - at beginning of history');
+      console.log(' Cannot undo - at beginning of history');
       return null;
     }
 
@@ -118,7 +118,7 @@ export function useUndoRedo() {
     const entry = history[newIndex];
 
     if (!entry) {
-      console.log('❌ No entry at index', newIndex);
+      console.log(' No entry at index', newIndex);
       return null;
     }
 
@@ -138,7 +138,7 @@ export function useUndoRedo() {
     const idx = currentIndexRef.current;
     
     if (idx >= history.length - 1) {
-      console.log('❌ Cannot redo - at end of history');
+      console.log(' Cannot redo - at end of history');
       return null;
     }
 
@@ -146,7 +146,7 @@ export function useUndoRedo() {
     const entry = history[newIndex];
 
     if (!entry) {
-      console.log('❌ No entry at index', newIndex);
+      console.log(' No entry at index', newIndex);
       return null;
     }
 
@@ -170,7 +170,7 @@ export function useUndoRedo() {
     setCurrentIndex(0);
     lastHash.current = hash;
 
-    console.log('🗑️ History cleared');
+    console.log(' History cleared');
   }, []);
 
   /**
@@ -182,7 +182,7 @@ export function useUndoRedo() {
     lastHash.current = '';
     isInitialized.current = false;
 
-    console.log('🔄 History reset');
+    console.log(' History reset');
   }, []);
 
   return {
@@ -198,7 +198,7 @@ export function useUndoRedo() {
     currentIndex,
     // Debug info
     _debug: () => {
-      console.log('📊 History Debug:', {
+      console.log(' History Debug:', {
         historySize: history.length,
         currentIndex,
         currentIndexRef: currentIndexRef.current,

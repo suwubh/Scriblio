@@ -116,7 +116,7 @@ Rules:
   }
 
   async generateDiagram(prompt: string): Promise<any[]> {
-    console.log('🎨 Generating diagram for:', prompt);
+    console.log(' Generating diagram for:', prompt);
     
     try {
       const response = await this.chat({
@@ -146,7 +146,7 @@ Example output (this is the ONLY acceptable format):
         maxTokens: 3000,
       });
 
-      console.log('📥 Raw AI response:', response);
+      console.log(' Raw AI response:', response);
 
       // Clean up the response
       let cleanedResponse = response.trim();
@@ -160,7 +160,7 @@ Example output (this is the ONLY acceptable format):
       const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
 
       if (!jsonMatch) {
-        console.error('❌ No JSON array found in response:', cleanedResponse);
+        console.error(' No JSON array found in response:', cleanedResponse);
         
         // Try to extract any text that looks like a diagram description
         const hasDescription = /create|draw|make|generate/i.test(cleanedResponse);
@@ -173,19 +173,19 @@ Example output (this is the ONLY acceptable format):
       }
 
       const jsonString = jsonMatch[0];
-      console.log('📋 Extracted JSON:', jsonString);
+      console.log(' Extracted JSON:', jsonString);
 
       let elements: any[];
       try {
         elements = JSON.parse(jsonString);
       } catch (parseError) {
-        console.error('❌ JSON parse error:', parseError);
+        console.error(' JSON parse error:', parseError);
         console.error('Failed to parse:', jsonString);
         throw new Error('AI returned malformed JSON. Please try again with a simpler prompt.');
       }
 
       if (!Array.isArray(elements)) {
-        console.error('❌ Parsed result is not an array:', elements);
+        console.error(' Parsed result is not an array:', elements);
         throw new Error('AI response was not a valid diagram array');
       }
 
@@ -212,11 +212,11 @@ Example output (this is the ONLY acceptable format):
         return el;
       });
 
-      console.log('✅ Generated', validatedElements.length, 'valid elements');
+      console.log(' Generated', validatedElements.length, 'valid elements');
       return validatedElements;
 
     } catch (error) {
-      console.error('❌ Diagram generation failed:', error);
+      console.error(' Diagram generation failed:', error);
       
       // Provide helpful error messages
       if (error instanceof Error) {

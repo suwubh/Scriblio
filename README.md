@@ -1,4 +1,4 @@
-# ✏️ Scriblio - AI-Powered Collaborative Whiteboard
+#  Scriblio - AI-Powered Collaborative Whiteboard
 
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Stars](https://img.shields.io/github/stars/suwubh/Scriblio?style=social)
@@ -8,22 +8,22 @@ A real-time collaborative whiteboard that combines **CRDT technology**, **AI ass
 
 ---
 
-## 🌟 Features
+##  Features
 
-### 🎨 Core Whiteboard
+###  Core Whiteboard
 
 - **Real-time Collaboration** — Powered by Yjs CRDTs for conflict-free editing
 - **Intuitive Drawing Tools** — Smooth, responsive drawing with shapes and annotations
 - **Live Presence** — See who's online and actively editing in real-time
 - **Responsive Design** — Works seamlessly across desktop and mobile devices
 
-### 🤖 AI-Powered
+###  AI-Powered
 
 - **AI Command Palette** — Context-aware suggestions with Cmd/Ctrl + K
 - **Intelligent Assistance** — AI-powered content generation and optimization
 - **Smart Commands** — Natural language interface for whiteboard actions
 
-### 🌐 Collaboration Features
+###  Collaboration Features
 
 - **Hybrid Networking** — WebRTC peer-to-peer with WebSocket fallback
 - **Redis Pub/Sub** — Real-time presence and signaling
@@ -32,7 +32,7 @@ A real-time collaborative whiteboard that combines **CRDT technology**, **AI ass
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 **Frontend:** React 18, TypeScript, Vite, TailwindCSS  
 **Collaboration:** Yjs (CRDT), y-webrtc, WebSocket  
@@ -41,7 +41,7 @@ A real-time collaborative whiteboard that combines **CRDT technology**, **AI ass
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 
@@ -89,11 +89,11 @@ REDIS_PORT=6379
 
 ---
 
-## 🖥️ Running Locally
+##  Running Locally
 
 Scriblio requires **four servers** to run locally. Follow these steps:
 
-### 1️⃣ Start Redis Server
+### 1 Start Redis Server
 
 **Option A: Using Docker (Recommended)**
 
@@ -123,7 +123,7 @@ redis-cli ping
 
 ---
 
-### 2️⃣ Start Signaling Server
+### 2 Start Signaling Server
 
 The signaling server handles WebSocket connections and WebRTC coordination.
 
@@ -138,7 +138,7 @@ npm start
 
 ---
 
-### 3️⃣ Start AI Server
+### 3 Start AI Server
 
 The AI server provides intelligent assistance and command processing.
 
@@ -155,7 +155,7 @@ npm start
 
 ---
 
-### 4️⃣ Start Scriblio Frontend
+### 4 Start Scriblio Frontend
 
 The main React application that users interact with.
 
@@ -169,7 +169,7 @@ npm run dev
 
 ---
 
-## 🎯 Verification Checklist
+##  Verification Checklist
 
 After starting all servers, verify everything is running:
 
@@ -181,7 +181,7 @@ After starting all servers, verify everything is running:
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 Scriblio/
@@ -207,7 +207,7 @@ Scriblio/
 
 ---
 
-## 🎮 Usage Guide
+##  Usage Guide
 
 ### Creating a Session
 
@@ -239,7 +239,7 @@ Scriblio/
 
 ---
 
-## 🚢 Production Deployment
+##  Production Deployment
 
 Build for production:
 
@@ -268,7 +268,7 @@ The `dist/` folder contains optimized static files ready for deployment to:
 
 ---
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### Redis Connection Failed
 
@@ -309,7 +309,7 @@ taskkill /PID <PID> /F
 
 ---
 
-## 🗺️ Roadmap
+##  Roadmap
 
 - [ ] **Authentication** — User accounts and permissions
 - [ ] **Cloud Storage** — Persistent board storage (PostgreSQL/MongoDB)
@@ -321,7 +321,7 @@ taskkill /PID <PID> /F
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 We welcome contributions! Here's how to get started:
 
@@ -354,13 +354,13 @@ git push origin feature/amazing-feature
 
 ---
 
-## 📄 License
+##  License
 
 This project is licensed under the **MIT License**. See [LICENSE](./LICENSE) for details.
 
 ---
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 Built with amazing open-source technologies:
 
@@ -372,11 +372,11 @@ Built with amazing open-source technologies:
 
 ---
 
-## 📞 Support & Contact
+##  Support & Contact
 
-- 🐛 **Issues:** [GitHub Issues](https://github.com/suwubh/Scriblio/issues)
-- 💬 **Discussions:** [GitHub Discussions](https://github.com/suwubh/Scriblio/discussions)
-- 📧 **Email:** [subhankarsatpathy69@gmail.com](mailto:subhankarsatpathy69@gmail.com)
+-  **Issues:** [GitHub Issues](https://github.com/suwubh/Scriblio/issues)
+-  **Discussions:** [GitHub Discussions](https://github.com/suwubh/Scriblio/discussions)
+-  **Email:** [subhankarsatpathy69@gmail.com](mailto:subhankarsatpathy69@gmail.com)
 
 ---
 
@@ -384,6 +384,6 @@ Built with amazing open-source technologies:
 
 **⭐ Star this repo if you find it useful!**
 
-Made with ❤️ by [suwubh](https://github.com/suwubh)
+Made with  by [suwubh](https://github.com/suwubh)
 
 </div>

@@ -38,24 +38,24 @@ export class RedisManager {
   private connect(): void {
     // Prevent multiple simultaneous connection attempts
     if (this.isConnecting) {
-      console.log('⏭️ Already connecting, skipping...')
+      console.log(' Already connecting, skipping...')
       return
     }
 
     // Don't reconnect if intentionally closed
     if (this.isIntentionallyClosed) {
-      console.log('⏭️ Connection intentionally closed, not reconnecting')
+      console.log(' Connection intentionally closed, not reconnecting')
       return
     }
 
     this.isConnecting = true
 
     try {
-      console.log('🔌 Connecting to Redis WebSocket:', this.redisWsUrl)
+      console.log(' Connecting to Redis WebSocket:', this.redisWsUrl)
       this.ws = new WebSocket(this.redisWsUrl)
       this.setupEventListeners()
     } catch (error) {
-      console.error('❌ Failed to create WebSocket:', error)
+      console.error(' Failed to create WebSocket:', error)
       this.isConnecting = false
       this.handleReconnect()
     }
@@ -65,7 +65,7 @@ export class RedisManager {
     if (!this.ws) return
 
     this.ws.onopen = () => {
-      console.log('✅ Connected to Redis WebSocket')
+      console.log(' Connected to Redis WebSocket')
       this.isConnecting = false
       this.reconnectAttempts = 0
       this.onConnectionCallback?.(true)
@@ -81,7 +81,7 @@ export class RedisManager {
     }
 
     this.ws.onclose = (event) => {
-      console.log('🔌 Redis WebSocket connection closed', {
+      console.log(' Redis WebSocket connection closed', {
         code: event.code,
         reason: event.reason,
         wasClean: event.wasClean
@@ -98,7 +98,7 @@ export class RedisManager {
     }
 
     this.ws.onerror = (error) => {
-      console.error('❌ Redis WebSocket error:', error)
+      console.error(' Redis WebSocket error:', error)
       this.isConnecting = false
       this.onConnectionCallback?.(false)
     }
@@ -119,14 +119,14 @@ export class RedisManager {
         try {
           this.ws.send(JSON.stringify({ type: 'ping' }))
         } catch (error) {
-          console.error('❌ Failed to send heartbeat:', error)
+          console.error(' Failed to send heartbeat:', error)
         }
       }
 
       // Check if we've received a message recently
       const timeSinceLastHeartbeat = Date.now() - this.lastHeartbeat
       if (timeSinceLastHeartbeat > 45000) { // 45 seconds
-        console.warn('⚠️ No heartbeat received, connection may be dead')
+        console.warn(' No heartbeat received, connection may be dead')
         this.reconnect()
       }
     }, 30000)
@@ -155,7 +155,7 @@ export class RedisManager {
         this.onSignalingCallback?.(message.data)
       }
     } catch (error) {
-      console.error('❌ Failed to parse Redis message:', error, data)
+      console.error(' Failed to parse Redis message:', error, data)
     }
   }
 
@@ -173,7 +173,7 @@ export class RedisManager {
 
     // Check max attempts
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('❌ Max reconnection attempts reached')
+      console.error(' Max reconnection attempts reached')
       this.onConnectionCallback?.(false)
       return
     }
@@ -186,17 +186,17 @@ export class RedisManager {
       30000 // Max 30 seconds
     )
 
-    console.log(`⏱️ Reconnecting in ${delay}ms... (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
+    console.log(` Reconnecting in ${delay}ms... (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
     
     this.reconnectTimeout = setTimeout(() => {
-      console.log(`🔄 Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
+      console.log(` Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
       this.reconnectTimeout = null
       this.connect()
     }, delay)
   }
 
   private reconnect(): void {
-    console.log('🔄 Forcing reconnection...')
+    console.log(' Forcing reconnection...')
     
     // Close existing connection
     if (this.ws) {
@@ -216,7 +216,7 @@ export class RedisManager {
   // Subscribe to presence updates for a room
   subscribeToPresence(roomId: string): void {
     if (!this.isConnected()) {
-      console.warn('⚠️ Cannot subscribe - not connected')
+      console.warn(' Cannot subscribe - not connected')
       return
     }
 
@@ -229,7 +229,7 @@ export class RedisManager {
   // Subscribe to signaling for WebRTC coordination
   subscribeToSignaling(roomId: string): void {
     if (!this.isConnected()) {
-      console.warn('⚠️ Cannot subscribe - not connected')
+      console.warn(' Cannot subscribe - not connected')
       return
     }
 
@@ -297,10 +297,10 @@ export class RedisManager {
       try {
         this.ws.send(JSON.stringify(message))
       } catch (error) {
-        console.error('❌ Failed to send message:', error)
+        console.error(' Failed to send message:', error)
       }
     } else {
-      console.warn('⚠️ WebSocket not ready, message not sent:', {
+      console.warn(' WebSocket not ready, message not sent:', {
         readyState: this.ws?.readyState,
         message
       })
@@ -324,7 +324,7 @@ export class RedisManager {
   }
 
   destroy(): void {
-    console.log('🧹 Destroying RedisManager...')
+    console.log(' Destroying RedisManager...')
     
     // Mark as intentionally closed to prevent reconnection
     this.isIntentionallyClosed = true
@@ -359,6 +359,6 @@ export class RedisManager {
     this.onSignalingCallback = undefined
     this.onConnectionCallback = undefined
 
-    console.log('✅ RedisManager destroyed')
+    console.log(' RedisManager destroyed')
   }
 }

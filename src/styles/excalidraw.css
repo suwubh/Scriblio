@@ -22,7 +22,7 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  position: fixed; /* 🔥 ADD THIS */
+  position: fixed; /*  ADD THIS */
   top: 0;
   left: 0;
 }
@@ -194,7 +194,7 @@ html, body, #root {
   height: 100%;
   overflow: hidden;
   position: relative;
-  min-height: 0; /* 🔥 ADD THIS - Critical for flex */
+  min-height: 0; /*  ADD THIS - Critical for flex */
 }
 
 .canvas-wrap {
@@ -203,7 +203,7 @@ html, body, #root {
   height: 100%;
   background: radial-gradient(circle at 25% 25%, rgba(0,0,0,0.04) 0 1px, transparent 1px) 0 0/16px 16px;
   overflow: hidden;
-  position: relative; /* 🔥 ADD THIS */
+  position: relative; /*  ADD THIS */
 }
 
 .excalidraw-canvas {
@@ -213,7 +213,7 @@ html, body, #root {
   height: 100%;
   display: block;
   outline: none;
-  touch-action: none; /* 🔥 ADD THIS - Prevents scrolling */
+  touch-action: none; /*  ADD THIS - Prevents scrolling */
 }
 
 /* Eraser cursor */
@@ -415,7 +415,7 @@ html, body, #root {
   width: 100vw;
   height: 100vh;
   background: transparent; /* Remove dark background */
-  pointer-events: auto; /* 🔥 CHANGE FROM none */
+  pointer-events: auto; /*  CHANGE FROM none */
   z-index: 999;
 }
 

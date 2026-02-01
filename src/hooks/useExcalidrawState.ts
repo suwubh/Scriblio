@@ -49,7 +49,7 @@ export function useExcalidrawState() {
   // Initialize history once on mount
   useEffect(() => {
     if (!isInitialized.current) {
-      console.log('🎬 Initializing history with elements:', elements.length);
+      console.log(' Initializing history with elements:', elements.length);
       initialize(elements, appState);
       isInitialized.current = true;
     }
@@ -77,7 +77,7 @@ export function useExcalidrawState() {
    * Set canvas app reference
    */
   const setCanvasAppRef = useCallback((app: any) => {
-    console.log('📌 Canvas app ref set:', !!app);
+    console.log(' Canvas app ref set:', !!app);
     canvasAppRef.current = app;
   }, []);
 
@@ -101,16 +101,16 @@ export function useExcalidrawState() {
    * Handle elements change from canvas
    */
   const setElementsFromCanvas = useCallback((newElements: ExcalidrawElement[]) => {
-    console.log('🎨 setElementsFromCanvas called with', newElements.length, 'elements, lock:', undoRedoLock.current);
+    console.log(' setElementsFromCanvas called with', newElements.length, 'elements, lock:', undoRedoLock.current);
     
     setElements(newElements);
     
     // Save to history only if not during undo/redo
     if (!undoRedoLock.current) {
-      console.log('💾 Saving to history from canvas');
+      console.log(' Saving to history from canvas');
       saveState(newElements, appState);
     } else {
-      console.log('🔒 Skipping save - undo/redo in progress');
+      console.log(' Skipping save - undo/redo in progress');
     }
   }, [saveState, appState]);
 
@@ -187,7 +187,7 @@ export function useExcalidrawState() {
       canvasAppRef.current.updateAppState(resetState);
     }
 
-    console.log('🗑️ Canvas cleared');
+    console.log(' Canvas cleared');
   }, [appState.width, appState.height, clear]);
 
   /**
@@ -216,7 +216,7 @@ export function useExcalidrawState() {
         // Release lock after updates complete
         setTimeout(() => {
           undoRedoLock.current = false;
-          console.log('✅ Undo complete');
+          console.log(' Undo complete');
         }, 50);
       });
     } else {
@@ -250,7 +250,7 @@ export function useExcalidrawState() {
         // Release lock after updates complete
         setTimeout(() => {
           undoRedoLock.current = false;
-          console.log('✅ Redo complete');
+          console.log(' Redo complete');
         }, 50);
       });
     } else {
@@ -284,7 +284,7 @@ export function useExcalidrawState() {
     
     // Debug
     _debugHistory: () => {
-      console.log('📊 State Debug:', {
+      console.log(' State Debug:', {
         elementsCount: elements.length,
         canUndo,
         canRedo,
