@@ -11,20 +11,20 @@ const wss = new WebSocket.Server({
 const rooms = new Map()
 const clients = new Map()
 
-console.log('🚀 Scriblio Signaling Server running on ws://localhost:4000')
+console.log('Scriblio Signaling Server running on ws://localhost:4000')
 
 wss.on('connection', (ws, request) => {
   const clientId = uuidv4()
   clients.set(ws, { id: clientId, rooms: new Set() })
   
-  console.log(`📱 Client connected: ${clientId}`)
+  console.log(`Client connected: ${clientId}`)
   
   ws.on('message', (data) => {
     try {
       const message = JSON.parse(data.toString())
       handleMessage(ws, message)
     } catch (error) {
-      console.error('❌ Invalid message format:', error)
+      console.error('Invalid message format:', error)
     }
   })
   
@@ -48,12 +48,12 @@ wss.on('connection', (ws, request) => {
         }
       })
       clients.delete(ws)
-      console.log(`📱 Client disconnected: ${client.id}`)
+      console.log(`Client disconnected: ${client.id}`)
     }
   })
   
   ws.on('error', (error) => {
-    console.error('❌ WebSocket error:', error)
+    console.error('WebSocket error:', error)
   })
 })
 
@@ -73,7 +73,7 @@ function handleMessage(ws, message) {
       ws.send(JSON.stringify({ type: 'pong' }))
       break
     default:
-      console.log(`📨 Unknown message type: ${message.type}`)
+      console.log(`Unknown message type: ${message.type}`)
   }
 }
 
@@ -90,7 +90,7 @@ function handleSubscribe(ws, message, client) {
     room.add(ws)
     client.rooms.add(topic)
     
-    console.log(`🏠 Client ${client.id} joined room: ${topic}`)
+    console.log(`Client ${client.id} joined room: ${topic}`)
     
     // Notify existing clients about new peer
     broadcastToRoom(topic, {
@@ -155,12 +155,12 @@ const healthServer = http.createServer((req, res) => {
 })
 
 healthServer.listen(4001, () => {
-  console.log('🏥 Health check server running on http://localhost:4001/health')
+  console.log('Health check server running on http://localhost:4001/health')
 })
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('🛑 Shutting down signaling server...')
+  console.log('Shutting down signaling server...')
   wss.close(() => {
     healthServer.close(() => {
       process.exit(0)
@@ -169,7 +169,7 @@ process.on('SIGTERM', () => {
 })
 
 process.on('SIGINT', () => {
-  console.log('🛑 Shutting down signaling server...')
+  console.log('Shutting down signaling server...')
   wss.close(() => {
     healthServer.close(() => {
       process.exit(0)

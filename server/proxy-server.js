@@ -1,15 +1,16 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+import express, { json } from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const OpenAI = require('openai');
-const Groq = require('groq-sdk');
+import OpenAI from 'openai';
+import Groq from 'groq-sdk';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(json({ limit: '10mb' }));
 
 
 const openai = process.env.OPENAI_API_KEY
@@ -21,7 +22,7 @@ const groq = process.env.GROQ_API_KEY
   : null;
 
 if (!openai && !groq) {
-  console.warn('⚠️ No AI providers configured');
+  console.warn('No AI providers configured');
 }
 
 
@@ -88,7 +89,7 @@ app.post('/api/chat', async (req, res) => {
         });
       } catch (err) {
         if (err.status !== 429) throw err;
-        console.warn('⚠️ OpenAI quota hit → fallback to Groq');
+        console.warn(' OpenAI quota hit → fallback to Groq');
       }
     }
 
@@ -110,7 +111,7 @@ app.post('/api/chat', async (req, res) => {
       content: completion.choices[0].message.content,
     });
   } catch (err) {
-    console.error('❌ AI error:', err);
+    console.error(' AI error:', err);
     res.status(500).json({
       error: 'AI request failed',
       message: err.message,
@@ -121,9 +122,9 @@ app.post('/api/chat', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`
-🚀 Scriblio AI Proxy running
-📍 http://localhost:${PORT}
-🏥 /health
-🤖 POST /api/chat
+ Scriblio AI Proxy running
+ http://localhost:${PORT}
+ /health
+ POST /api/chat
   `);
 });
