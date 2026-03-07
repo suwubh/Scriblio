@@ -16,6 +16,12 @@ export interface RedisSignalingMessage {
   timestamp: number
 }
 
+interface RoomPresenceState {
+  roomId: string
+  userId: string
+  presence: unknown
+}
+
 export class RedisManager {
   private ws: WebSocket | null = null
   private reconnectInterval: number = 3000
@@ -26,6 +32,8 @@ export class RedisManager {
   private isConnecting: boolean = false
   private heartbeatInterval: NodeJS.Timeout | null = null
   private lastHeartbeat: number = Date.now()
+  private activeSubscriptions: Set<string> = new Set()
+  private currentRoomPresence: RoomPresenceState | null = null
   
   private onPresenceCallback?: (message: RedisPresenceMessage) => void
   private onSignalingCallback?: (message: RedisSignalingMessage) => void
@@ -78,6 +86,7 @@ export class RedisManager {
 
       // Start heartbeat
       this.startHeartbeat()
+      this.restoreSessionState()
     }
 
     this.ws.onclose = (event) => {
@@ -213,30 +222,50 @@ export class RedisManager {
     this.connect()
   }
 
+  private restoreSessionState(): void {
+    if (!this.isConnected()) return
+
+    this.activeSubscriptions.forEach((channel) => {
+      this.send(
+        {
+          type: 'subscribe',
+          channel,
+        },
+        true
+      )
+    })
+
+    if (this.currentRoomPresence) {
+      this.publishPresence({
+        type: 'join',
+        userId: this.currentRoomPresence.userId,
+        roomId: this.currentRoomPresence.roomId,
+        presence: this.currentRoomPresence.presence,
+        timestamp: Date.now(),
+      })
+    }
+  }
+
   // Subscribe to presence updates for a room
   subscribeToPresence(roomId: string): void {
-    if (!this.isConnected()) {
-      console.warn(' Cannot subscribe - not connected')
-      return
-    }
+    const channel = `presence:${roomId}`
+    this.activeSubscriptions.add(channel)
 
     this.send({
       type: 'subscribe',
-      channel: `presence:${roomId}`
-    })
+      channel
+    }, true)
   }
 
   // Subscribe to signaling for WebRTC coordination
   subscribeToSignaling(roomId: string): void {
-    if (!this.isConnected()) {
-      console.warn(' Cannot subscribe - not connected')
-      return
-    }
+    const channel = `signaling:${roomId}`
+    this.activeSubscriptions.add(channel)
 
     this.send({
       type: 'subscribe',
-      channel: `signaling:${roomId}`
-    })
+      channel
+    }, true)
   }
 
   // Publish presence update
@@ -259,6 +288,16 @@ export class RedisManager {
 
   // Join room and announce presence
   joinRoom(roomId: string, userId: string, userPresence: any): void {
+    this.currentRoomPresence = {
+      roomId,
+      userId,
+      presence: userPresence
+    }
+
+    if (!this.isConnected()) {
+      return
+    }
+
     const message: RedisPresenceMessage = {
       type: 'join',
       userId,
@@ -271,6 +310,21 @@ export class RedisManager {
 
   // Leave room
   leaveRoom(roomId: string, userId: string): void {
+    if (
+      this.currentRoomPresence &&
+      this.currentRoomPresence.roomId === roomId &&
+      this.currentRoomPresence.userId === userId
+    ) {
+      this.currentRoomPresence = null
+    }
+
+    this.activeSubscriptions.delete(`presence:${roomId}`)
+    this.activeSubscriptions.delete(`signaling:${roomId}`)
+
+    if (!this.isConnected()) {
+      return
+    }
+
     const message: RedisPresenceMessage = {
       type: 'leave',
       userId,
@@ -282,6 +336,21 @@ export class RedisManager {
 
   // Update presence in room
   updatePresence(roomId: string, userId: string, presence: any): void {
+    if (
+      this.currentRoomPresence &&
+      this.currentRoomPresence.roomId === roomId &&
+      this.currentRoomPresence.userId === userId
+    ) {
+      this.currentRoomPresence = {
+        ...this.currentRoomPresence,
+        presence,
+      }
+    }
+
+    if (!this.isConnected()) {
+      return
+    }
+
     const message: RedisPresenceMessage = {
       type: 'update',
       userId,
@@ -292,7 +361,7 @@ export class RedisManager {
     this.publishPresence(message)
   }
 
-  private send(message: any): void {
+  private send(message: any, suppressWarning: boolean = false): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       try {
         this.ws.send(JSON.stringify(message))
@@ -300,10 +369,12 @@ export class RedisManager {
         console.error(' Failed to send message:', error)
       }
     } else {
-      console.warn(' WebSocket not ready, message not sent:', {
-        readyState: this.ws?.readyState,
-        message
-      })
+      if (!suppressWarning) {
+        console.warn(' WebSocket not ready, message not sent:', {
+          readyState: this.ws?.readyState,
+          message
+        })
+      }
     }
   }
 
@@ -358,6 +429,8 @@ export class RedisManager {
     this.onPresenceCallback = undefined
     this.onSignalingCallback = undefined
     this.onConnectionCallback = undefined
+    this.activeSubscriptions.clear()
+    this.currentRoomPresence = null
 
     console.log(' RedisManager destroyed')
   }
