@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { WebrtcProvider } from 'y-webrtc'
 import { WebsocketProvider } from 'y-websocket'
 import { YjsDocumentManager } from '../managers/YjsDocumentManager'
@@ -15,6 +15,8 @@ interface CollaborationContextType {
   connectionStatus: ConnectionStatus
   config: CollaborationConfig
   error: Error | null
+  isReconnecting: boolean
+  reconnect: () => void
 }
 
 const CollaborationContext = createContext<CollaborationContextType | null>(null)
@@ -24,22 +26,25 @@ interface CollaborationProviderProps {
   config: CollaborationConfig & {
     redisWsUrl?: string
     userId: string
-  };
+  }
   onError?: (error: Error) => void
 }
 
-export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({ 
-  children, 
-  config 
+export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
+  children,
+  config,
+  onError,
 }) => {
   const documentManagerRef = useRef<YjsDocumentManager | null>(null)
   const webrtcManagerRef = useRef<WebRTCManager | null>(null)
   const redisManagerRef = useRef<RedisManager | null>(null)
-  
+
   const [webrtcProvider, setWebrtcProvider] = useState<WebrtcProvider | null>(null)
   const [websocketProvider, setWebsocketProvider] = useState<WebsocketProvider | null>(null)
   const [redisManager, setRedisManager] = useState<RedisManager | null>(null)
   const [error, setError] = useState<Error | null>(null)
+  const [isReconnecting, setIsReconnecting] = useState(false)
+  const [retryVersion, setRetryVersion] = useState(0)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
     webrtc: 'disconnected',
     websocket: 'disconnected',
@@ -49,49 +54,57 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
   const isInitializing = useRef(false)
   const hasInitialized = useRef(false)
 
-  // Initialize managers once
   if (!documentManagerRef.current) {
     documentManagerRef.current = new YjsDocumentManager(config.roomId)
   }
-  
+
   if (!webrtcManagerRef.current) {
     webrtcManagerRef.current = new WebRTCManager()
-  }
-
-  if (!redisManagerRef.current && config.redisWsUrl) {
-    redisManagerRef.current = new RedisManager(config.redisWsUrl)
   }
 
   const documentManager = documentManagerRef.current
   const webrtcManager = webrtcManagerRef.current
 
+  const reconnect = () => {
+    setError(null)
+    setIsReconnecting(true)
+    hasInitialized.current = false
+    isInitializing.current = false
+    setRetryVersion((prev) => prev + 1)
+  }
+
   useEffect(() => {
-    // Prevent multiple initializations
     if (hasInitialized.current || isInitializing.current) {
-      console.log('⏭️ Skipping initialization - already running or complete')
       return
     }
 
     isInitializing.current = true
-    console.log('🔌 Initializing collaboration providers...')
+    setIsReconnecting(true)
+    setError(null)
+    setWebrtcProvider(null)
+    setWebsocketProvider(null)
+    setRedisManager(null)
+    setConnectionStatus({
+      webrtc: 'connecting',
+      websocket: 'connecting',
+      synced: false,
+    })
 
-    // Track cleanup functions
     let redisCleanup: (() => void) | undefined
     let webrtcCleanup: (() => void) | undefined
     let wsCleanup: (() => void) | undefined
 
     try {
-      // Setup Redis Manager
       if (config.redisWsUrl) {
         const redis = new RedisManager(config.redisWsUrl)
-        
+
         redis.subscribeToPresence(config.roomId)
         redis.subscribeToSignaling(config.roomId)
-        
+
         redis.joinRoom(config.roomId, config.userId, {
           name: config.userName || 'Anonymous',
           color: `hsl(${Math.random() * 360}, 70%, 50%)`,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         })
 
         redis.onSignaling((message) => {
@@ -101,7 +114,7 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
         })
 
         redis.onConnection((connected) => {
-          setConnectionStatus(prev => ({ ...prev, synced: connected }))
+          setConnectionStatus((prev) => ({ ...prev, synced: connected }))
         })
 
         setRedisManager(redis)
@@ -113,7 +126,6 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
         }
       }
 
-      // Setup WebRTC Provider
       const webrtc = new WebrtcProvider(config.roomId, documentManager.doc, {
         signaling: config.signaling || ['wss://signaling.yjs.dev'],
         password: undefined,
@@ -121,17 +133,16 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
         filterBcConns: true,
       })
 
-      webrtc.on('status', (event: any) => {
-        setConnectionStatus(prev => ({
+      webrtc.on('status', (event: { connected: boolean }) => {
+        setConnectionStatus((prev) => ({
           ...prev,
-          webrtc: event.status,
+          webrtc: event.connected ? 'connected' : 'disconnected',
         }))
       })
 
       setWebrtcProvider(webrtc)
       webrtcCleanup = () => webrtc.destroy()
 
-      // Setup WebSocket Provider (fallback)
       const ws = new WebsocketProvider(
         config.websocketUrl || 'wss://demos.yjs.dev/ws',
         config.roomId,
@@ -139,8 +150,8 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
         { connect: true }
       )
 
-      ws.on('status', (event: any) => {
-        setConnectionStatus(prev => ({
+      ws.on('status', (event: { status: ConnectionStatus['websocket'] }) => {
+        setConnectionStatus((prev) => ({
           ...prev,
           websocket: event.status,
         }))
@@ -151,18 +162,16 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
 
       hasInitialized.current = true
       isInitializing.current = false
-      console.log('✅ Collaboration providers initialized')
-
+      setIsReconnecting(false)
     } catch (err) {
-      console.error('❌ Failed to initialize collaboration:', err)
-      setError(err as Error)
+      const initError = err as Error
+      setError(initError)
+      onError?.(initError)
       isInitializing.current = false
+      setIsReconnecting(false)
     }
 
     return () => {
-      console.log('🧹 Cleaning up collaboration providers...')
-      
-      // Clean up in reverse order of initialization
       if (wsCleanup) wsCleanup()
       if (webrtcCleanup) webrtcCleanup()
       if (redisCleanup) redisCleanup()
@@ -170,55 +179,15 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
       hasInitialized.current = false
       isInitializing.current = false
     }
-  }, [config.roomId, config.userId])
+  }, [config.roomId, config.userId, retryVersion])
 
   useEffect(() => {
     return () => {
-      console.log('🧹 Final cleanup of managers...')
       documentManager.destroy()
       webrtcManager.destroy()
       redisManagerRef.current?.destroy()
     }
-  }, [])
-
-  if (error) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        flexDirection: 'column',
-        gap: '1rem',
-        padding: '2rem',
-        textAlign: 'center'
-      }}>
-        <div style={{ fontSize: '3rem' }}>⚠️</div>
-        <h2>Collaboration Connection Failed</h2>
-        <p style={{ color: '#666', maxWidth: '500px' }}>
-          {error.message || 'Failed to connect to collaboration server'}
-        </p>
-        <button 
-          onClick={() => {
-            setError(null)
-            hasInitialized.current = false
-            isInitializing.current = false
-          }}
-          style={{
-            padding: '0.75rem 1.5rem',
-            borderRadius: '8px',
-            border: '1px solid #646cff',
-            background: '#646cff',
-            color: 'white',
-            cursor: 'pointer',
-            fontSize: '1rem'
-          }}
-        >
-          Retry Connection
-        </button>
-      </div>
-    )
-  }
+  }, [documentManager, webrtcManager])
 
   const contextValue: CollaborationContextType = {
     documentManager,
@@ -229,13 +198,11 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
     connectionStatus,
     config,
     error,
+    isReconnecting,
+    reconnect,
   }
 
-  return (
-    <CollaborationContext.Provider value={contextValue}>
-      {children}
-    </CollaborationContext.Provider>
-  )
+  return <CollaborationContext.Provider value={contextValue}>{children}</CollaborationContext.Provider>
 }
 
 export const useCollaborationContext = (): CollaborationContextType => {
