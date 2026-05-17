@@ -44,26 +44,15 @@ export class RedisManager {
   }
 
   private connect(): void {
-    // Prevent multiple simultaneous connection attempts
-    if (this.isConnecting) {
-      console.log(' Already connecting, skipping...')
-      return
-    }
-
-    // Don't reconnect if intentionally closed
-    if (this.isIntentionallyClosed) {
-      console.log(' Connection intentionally closed, not reconnecting')
-      return
-    }
+    if (this.isConnecting || this.isIntentionallyClosed) return
 
     this.isConnecting = true
 
     try {
-      console.log(' Connecting to Redis WebSocket:', this.redisWsUrl)
       this.ws = new WebSocket(this.redisWsUrl)
       this.setupEventListeners()
     } catch (error) {
-      console.error(' Failed to create WebSocket:', error)
+      console.error('Failed to create WebSocket:', error)
       this.isConnecting = false
       this.handleReconnect()
     }
@@ -73,41 +62,30 @@ export class RedisManager {
     if (!this.ws) return
 
     this.ws.onopen = () => {
-      console.log(' Connected to Redis WebSocket')
       this.isConnecting = false
       this.reconnectAttempts = 0
       this.onConnectionCallback?.(true)
-      
-      // Clear any pending reconnect timeout
+
       if (this.reconnectTimeout) {
         clearTimeout(this.reconnectTimeout)
         this.reconnectTimeout = null
       }
 
-      // Start heartbeat
       this.startHeartbeat()
       this.restoreSessionState()
     }
 
-    this.ws.onclose = (event) => {
-      console.log(' Redis WebSocket connection closed', {
-        code: event.code,
-        reason: event.reason,
-        wasClean: event.wasClean
-      })
-      
+    this.ws.onclose = () => {
       this.isConnecting = false
       this.stopHeartbeat()
       this.onConnectionCallback?.(false)
 
-      // Only reconnect if not intentionally closed
       if (!this.isIntentionallyClosed) {
         this.handleReconnect()
       }
     }
 
-    this.ws.onerror = (error) => {
-      console.error(' Redis WebSocket error:', error)
+    this.ws.onerror = () => {
       this.isConnecting = false
       this.onConnectionCallback?.(false)
     }
@@ -122,20 +100,16 @@ export class RedisManager {
     // Clear any existing heartbeat
     this.stopHeartbeat()
 
-    // Send ping every 30 seconds
     this.heartbeatInterval = setInterval(() => {
       if (this.ws?.readyState === WebSocket.OPEN) {
         try {
           this.ws.send(JSON.stringify({ type: 'ping' }))
-        } catch (error) {
-          console.error(' Failed to send heartbeat:', error)
+        } catch {
+          // ignore failed heartbeat, onclose will trigger reconnect
         }
       }
 
-      // Check if we've received a message recently
-      const timeSinceLastHeartbeat = Date.now() - this.lastHeartbeat
-      if (timeSinceLastHeartbeat > 45000) { // 45 seconds
-        console.warn(' No heartbeat received, connection may be dead')
+      if (Date.now() - this.lastHeartbeat > 45000) {
         this.reconnect()
       }
     }, 30000)
@@ -151,68 +125,54 @@ export class RedisManager {
   private handleMessage(data: string): void {
     try {
       const message = JSON.parse(data)
-      
-      // Handle pong responses
+
       if (message.type === 'pong') {
         this.lastHeartbeat = Date.now()
         return
       }
-      
+
       if (message.channel?.startsWith('presence:')) {
         this.onPresenceCallback?.(message.data)
       } else if (message.channel?.startsWith('signaling:')) {
         this.onSignalingCallback?.(message.data)
       }
-    } catch (error) {
-      console.error(' Failed to parse Redis message:', error, data)
+    } catch {
+      // malformed message — ignore
     }
   }
 
   private handleReconnect(): void {
-    // Clear any existing reconnect timeout
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout)
       this.reconnectTimeout = null
     }
 
-    // Don't reconnect if intentionally closed
-    if (this.isIntentionallyClosed) {
-      return
-    }
+    if (this.isIntentionallyClosed) return
 
-    // Check max attempts
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error(' Max reconnection attempts reached')
       this.onConnectionCallback?.(false)
       return
     }
 
     this.reconnectAttempts++
-    
-    // Calculate exponential backoff
+
     const delay = Math.min(
       this.reconnectInterval * Math.pow(2, this.reconnectAttempts - 1),
-      30000 // Max 30 seconds
+      30000
     )
 
-    console.log(` Reconnecting in ${delay}ms... (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
-    
     this.reconnectTimeout = setTimeout(() => {
-      console.log(` Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
       this.reconnectTimeout = null
       this.connect()
     }, delay)
   }
 
   private reconnect(): void {
-    console.log(' Forcing reconnection...')
-    
-    // Close existing connection
     if (this.ws) {
       try {
         this.ws.close()
-      } catch (error) {
-        console.error('Error closing WebSocket:', error)
+      } catch {
+        // ignore
       }
       this.ws = null
     }
@@ -246,7 +206,6 @@ export class RedisManager {
     }
   }
 
-  // Subscribe to presence updates for a room
   subscribeToPresence(roomId: string): void {
     const channel = `presence:${roomId}`
     this.activeSubscriptions.add(channel)
@@ -257,7 +216,6 @@ export class RedisManager {
     }, true)
   }
 
-  // Subscribe to signaling for WebRTC coordination
   subscribeToSignaling(roomId: string): void {
     const channel = `signaling:${roomId}`
     this.activeSubscriptions.add(channel)
@@ -268,7 +226,6 @@ export class RedisManager {
     }, true)
   }
 
-  // Publish presence update
   publishPresence(message: RedisPresenceMessage): void {
     this.send({
       type: 'publish',
@@ -277,7 +234,6 @@ export class RedisManager {
     })
   }
 
-  // Publish signaling message
   publishSignaling(message: RedisSignalingMessage): void {
     this.send({
       type: 'publish',
@@ -286,7 +242,6 @@ export class RedisManager {
     })
   }
 
-  // Join room and announce presence
   joinRoom(roomId: string, userId: string, userPresence: any): void {
     this.currentRoomPresence = {
       roomId,
@@ -308,7 +263,6 @@ export class RedisManager {
     this.publishPresence(message)
   }
 
-  // Leave room
   leaveRoom(roomId: string, userId: string): void {
     if (
       this.currentRoomPresence &&
@@ -334,7 +288,6 @@ export class RedisManager {
     this.publishPresence(message)
   }
 
-  // Update presence in room
   updatePresence(roomId: string, userId: string, presence: any): void {
     if (
       this.currentRoomPresence &&
@@ -361,20 +314,15 @@ export class RedisManager {
     this.publishPresence(message)
   }
 
-  private send(message: any, suppressWarning: boolean = false): void {
+  private send(message: any, silent: boolean = false): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       try {
         this.ws.send(JSON.stringify(message))
-      } catch (error) {
-        console.error(' Failed to send message:', error)
+      } catch {
+        // ignore send failures — connection drop will trigger reconnect
       }
-    } else {
-      if (!suppressWarning) {
-        console.warn(' WebSocket not ready, message not sent:', {
-          readyState: this.ws?.readyState,
-          message
-        })
-      }
+    } else if (!silent) {
+      console.warn('WebSocket not ready, message dropped')
     }
   }
 
@@ -395,43 +343,31 @@ export class RedisManager {
   }
 
   destroy(): void {
-    console.log(' Destroying RedisManager...')
-    
-    // Mark as intentionally closed to prevent reconnection
     this.isIntentionallyClosed = true
-
-    // Stop heartbeat
     this.stopHeartbeat()
 
-    // Clear reconnect timeout
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout)
       this.reconnectTimeout = null
     }
 
-    // Close WebSocket
     if (this.ws) {
       try {
-        // Remove event listeners to prevent callbacks
         this.ws.onopen = null
         this.ws.onclose = null
         this.ws.onerror = null
         this.ws.onmessage = null
-        
         this.ws.close(1000, 'Client disconnecting')
-      } catch (error) {
-        console.error('Error closing WebSocket:', error)
+      } catch {
+        // ignore
       }
       this.ws = null
     }
 
-    // Clear callbacks
     this.onPresenceCallback = undefined
     this.onSignalingCallback = undefined
     this.onConnectionCallback = undefined
     this.activeSubscriptions.clear()
     this.currentRoomPresence = null
-
-    console.log(' RedisManager destroyed')
   }
 }

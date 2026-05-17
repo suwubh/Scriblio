@@ -98,6 +98,7 @@ export const PresenceProvider: React.FC<PresenceProviderProps> = ({
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const usePresenceContext = (): PresenceContextType => {
   const context = useContext(PresenceContext)
   if (!context) {

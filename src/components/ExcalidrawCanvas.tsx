@@ -43,8 +43,7 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
       }
 
       isInitializing.current = true
-      console.log('🎨 Initializing CanvasApp...')
-      
+
       try {
         const canvasApp = new CanvasApp(canvasRef.current, appState)
         appRef.current = canvasApp
@@ -52,38 +51,34 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
         canvasApp.setOnElementsMutated((els) => onElementsChange(els))
         canvasApp.setOnAppStateMutated((st) => onAppStateChange(st))
 
-        // Notify parent that canvas app is ready
         if (onCanvasAppReady) {
           onCanvasAppReady(canvasApp)
         }
 
         hasInitialized.current = true
-        console.log('✅ CanvasApp initialized successfully')
 
-        // Setup resize handler
         const handleResize = () => {
           if (appRef.current) {
             appRef.current.resize()
           }
         }
-      
+
         handleResize()
         window.addEventListener('resize', handleResize)
 
         return () => {
-          console.log('🧹 Cleaning up CanvasApp...')
           window.removeEventListener('resize', handleResize)
-          
+
           if (appRef.current) {
             appRef.current.destroy()
             appRef.current = null
           }
-          
+
           hasInitialized.current = false
           isInitializing.current = false
         }
       } catch (error) {
-        console.error('❌ Failed to initialize CanvasApp:', error)
+        console.error('Failed to initialize canvas:', error)
         isInitializing.current = false
         return undefined
       }
@@ -116,7 +111,6 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
       }
     }, [appState.activeTool])
 
-    // Mouse tracking for collaboration
     const handleMouseMove = (e: React.MouseEvent) => {
       const rect = canvasRef.current?.getBoundingClientRect()
       if (rect) {
@@ -126,7 +120,6 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
       }
     }
 
-    // Render remote cursors
     const renderRemoteCursors = () => {
       return users.map(user => {
         if (!user.cursor) return null

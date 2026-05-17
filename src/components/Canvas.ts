@@ -8,13 +8,11 @@ export class CanvasApp {
   private eventHandler: EventHandler;
   private appState: AppState;
   private animationId: number | null = null;
-  private isDestroyed = false; 
+  private isDestroyed = false;
 
-  
   private onElementsMutated?: (elements: ExcalidrawElement[]) => void;
   private onAppStateMutated?: (appState: AppState) => void;
 
-  
   private lastElementsSig = '';
   private lastAppStateSig = '';
   private lastElementsCount = 0;
@@ -24,13 +22,13 @@ export class CanvasApp {
     this.appState = { ...initialAppState };
     this.renderer = new CanvasRenderer(this.canvas);
     this.eventHandler = new EventHandler(this.canvas, this.appState);
-    
+
     this.eventHandler.setOnElementsChanged((elements) => {
       if (this.onElementsMutated && !this.isDestroyed) {
         this.onElementsMutated(elements);
       }
     });
-    
+
     this.setupCanvas();
     this.startRenderLoop();
   }
@@ -45,42 +43,34 @@ export class CanvasApp {
 
   private setupCanvas() {
     const dpr = window.devicePixelRatio || 1;
-    
     const container = this.canvas.parentElement;
     if (!container) return;
-    
+
     const rect = container.getBoundingClientRect();
-    
+
     this.canvas.width = rect.width * dpr;
     this.canvas.height = rect.height * dpr;
-    
+
     const ctx = this.canvas.getContext('2d')!;
     ctx.scale(dpr, dpr);
-    
+
     this.canvas.style.width = rect.width + 'px';
     this.canvas.style.height = rect.height + 'px';
-    
+
     this.appState.width = rect.width;
     this.appState.height = rect.height;
   }
 
   private startRenderLoop() {
-    
     if (this.animationId !== null) {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
 
-    
-    if (this.isDestroyed) {
-      return;
-    }
+    if (this.isDestroyed) return;
 
     const render = () => {
-      
-      if (this.isDestroyed) {
-        return;
-      }
+      if (this.isDestroyed) return;
 
       const elements = this.eventHandler.getElements();
       const elementsToRender = [...elements];
@@ -92,10 +82,8 @@ export class CanvasApp {
       const selectionRect = this.eventHandler.getSelectionRect();
       this.renderer.render(elementsToRender, this.appState, selectionRect);
 
-      const hasElementsChanged = this.hasElementsChanged(elements);
-      if (hasElementsChanged && this.onElementsMutated && !this.isDestroyed) {
-        const deepCopy = JSON.parse(JSON.stringify(elements)) as ExcalidrawElement[];
-        this.onElementsMutated(deepCopy);
+      if (this.hasElementsChanged(elements) && this.onElementsMutated && !this.isDestroyed) {
+        this.onElementsMutated(JSON.parse(JSON.stringify(elements)) as ExcalidrawElement[]);
       }
 
       const appSig = this.generateAppStateSignature(this.appState);
@@ -104,12 +92,11 @@ export class CanvasApp {
         this.onAppStateMutated({ ...this.appState });
       }
 
-      
       if (!this.isDestroyed) {
         this.animationId = requestAnimationFrame(render);
       }
     };
-    
+
     render();
   }
 
@@ -141,7 +128,7 @@ export class CanvasApp {
 
   public updateAppState(newAppState: AppState) {
     if (this.isDestroyed) return;
-    
+
     this.appState = { ...newAppState };
     this.eventHandler.updateAppState(this.appState);
     this.lastAppStateSig = this.generateAppStateSignature(this.appState);
@@ -149,7 +136,7 @@ export class CanvasApp {
 
   public setElements(elements: ExcalidrawElement[]) {
     if (this.isDestroyed) return;
-    
+
     this.eventHandler.setElements(elements);
     this.lastElementsCount = elements.length;
     this.lastElementsSig = this.generateElementsSignature(elements);
@@ -157,7 +144,7 @@ export class CanvasApp {
 
   public clear() {
     if (this.isDestroyed) return;
-    
+
     this.eventHandler.clearElements();
     this.lastElementsCount = 0;
     this.lastElementsSig = '';
@@ -165,7 +152,7 @@ export class CanvasApp {
 
   public exportToJSON(): string {
     if (this.isDestroyed) return '{}';
-    
+
     return JSON.stringify(
       {
         elements: this.eventHandler.getElements(),
@@ -180,7 +167,7 @@ export class CanvasApp {
 
   public importFromJSON(json: string) {
     if (this.isDestroyed) return;
-    
+
     try {
       const data = JSON.parse(json);
       if (data.elements && Array.isArray(data.elements)) {
@@ -188,22 +175,17 @@ export class CanvasApp {
         this.lastElementsCount = data.elements.length;
         this.lastElementsSig = this.generateElementsSignature(data.elements);
       }
-
       if (data.appState) {
         this.updateAppState({ ...this.appState, ...data.appState });
       }
-
-      console.log('Canvas import successful!');
     } catch (error) {
-      console.error('Failed to import JSON in canvas:', error);
+      console.error('Failed to import JSON:', error);
     }
   }
 
   public resize() {
     if (this.isDestroyed) return;
-    
     this.setupCanvas();
-    
   }
 
   public getAppState(): AppState {
@@ -211,21 +193,17 @@ export class CanvasApp {
   }
 
   public destroy() {
-    
     this.isDestroyed = true;
 
-    
     if (this.animationId !== null) {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
 
-    
     if (this.eventHandler) {
       this.eventHandler.destroy();
     }
 
-    
     this.onElementsMutated = undefined;
     this.onAppStateMutated = undefined;
   }

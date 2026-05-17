@@ -14,6 +14,15 @@ import './styles/ai-modal.css'
 import './styles/ai-command-palette.css'
 import { AppState, ExcalidrawElement } from './types/excalidraw'
 
+function getRoomId(): string {
+  const hash = window.location.hash.slice(1)
+  if (hash) return hash
+  const id = Math.random().toString(36).slice(2, 10)
+  window.location.hash = id
+  return id
+}
+
+const roomId = getRoomId()
 const userId = generateUserId()
 const userName = `User ${userId.slice(-4)}`
 const userColor = generateUserColor()
@@ -220,7 +229,7 @@ function AppContent() {
 
 export default function App() {
   const collaborationConfig = {
-    roomId: 'scriblio-room-123',
+    roomId,
     userId,
     userName,
     redisWsUrl: import.meta.env.VITE_REDIS_WS_URL,
@@ -230,7 +239,6 @@ export default function App() {
 
   const handleCollaborationError = (error: Error) => {
     console.error('Collaboration error:', error)
-    // Todo: Toast notification 
   }
 
   return (

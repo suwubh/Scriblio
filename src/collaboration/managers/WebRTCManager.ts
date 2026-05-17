@@ -83,7 +83,7 @@ export class WebRTCManager {
       }
     } else {
       // Broadcast to all connected users
-      this.dataChannels.forEach((dataChannel, _userId) => {
+      this.dataChannels.forEach((dataChannel) => {
         if (dataChannel.readyState === 'open') {
           dataChannel.send(messageStr)
         }

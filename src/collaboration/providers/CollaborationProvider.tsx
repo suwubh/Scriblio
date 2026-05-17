@@ -107,12 +107,6 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
           timestamp: Date.now(),
         })
 
-        redis.onSignaling((message) => {
-          if (message.to === config.userId) {
-            console.log('Received signaling:', message)
-          }
-        })
-
         redis.onConnection((connected) => {
           setConnectionStatus((prev) => ({ ...prev, synced: connected }))
         })
@@ -205,6 +199,7 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
   return <CollaborationContext.Provider value={contextValue}>{children}</CollaborationContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useCollaborationContext = (): CollaborationContextType => {
   const context = useContext(CollaborationContext)
   if (!context) {

@@ -26,7 +26,7 @@ class AIService {
       endpoint: import.meta.env.VITE_PROXY_URL || 'http://localhost:3001/api/chat',
       retryAttempts: 3,
       retryDelay: 1000,
-      timeout: 60000, // Increased to 60 seconds for diagram generation
+      timeout: 60000,
       ...config,
     };
   }
@@ -61,7 +61,6 @@ class AIService {
       this.abortControllers.delete(requestId);
       
       if (attempts > 1 && !(error instanceof DOMException && error.name === 'AbortError')) {
-        console.warn(`Request failed, retrying... (${this.config.retryAttempts - attempts + 1}/${this.config.retryAttempts})`);
         await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
         return this.fetchWithRetry(input, init, attempts - 1);
       }
@@ -116,8 +115,6 @@ Rules:
   }
 
   async generateDiagram(prompt: string): Promise<any[]> {
-    console.log(' Generating diagram for:', prompt);
-    
     try {
       const response = await this.chat({
         messages: [
@@ -142,62 +139,38 @@ Example output (this is the ONLY acceptable format):
             content: prompt,
           },
         ],
-        temperature: 0.1, // Very low temperature for structured output
+        temperature: 0.1,
         maxTokens: 3000,
       });
 
-      console.log(' Raw AI response:', response);
+      const cleanedResponse = response.trim()
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .trim();
 
-      // Clean up the response
-      let cleanedResponse = response.trim();
-      
-      // Remove markdown code blocks if present
-      cleanedResponse = cleanedResponse.replace(/```json\s*/g, '');
-      cleanedResponse = cleanedResponse.replace(/```\s*/g, '');
-      cleanedResponse = cleanedResponse.trim();
-
-      // Find the JSON array
       const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
 
       if (!jsonMatch) {
-        console.error(' No JSON array found in response:', cleanedResponse);
-        
-        // Try to extract any text that looks like a diagram description
         const hasDescription = /create|draw|make|generate/i.test(cleanedResponse);
-        
         if (hasDescription) {
-          throw new Error('AI provided a description instead of diagram data. Please try a more specific prompt like "Create 3 rectangles in a row"');
+          throw new Error('AI provided a description instead of diagram data. Try a more specific prompt like "Create 3 rectangles in a row"');
         }
-        
         throw new Error('AI did not return valid diagram data. The response format was incorrect.');
       }
 
-      const jsonString = jsonMatch[0];
-      console.log(' Extracted JSON:', jsonString);
-
       let elements: any[];
       try {
-        elements = JSON.parse(jsonString);
-      } catch (parseError) {
-        console.error(' JSON parse error:', parseError);
-        console.error('Failed to parse:', jsonString);
+        elements = JSON.parse(jsonMatch[0]);
+      } catch {
         throw new Error('AI returned malformed JSON. Please try again with a simpler prompt.');
       }
 
-      if (!Array.isArray(elements)) {
-        console.error(' Parsed result is not an array:', elements);
-        throw new Error('AI response was not a valid diagram array');
-      }
-
-      if (elements.length === 0) {
+      if (!Array.isArray(elements) || elements.length === 0) {
         throw new Error('AI returned an empty diagram. Try describing what you want to create.');
       }
 
-      // Validate and fix elements
       const validatedElements = elements.map((el, index) => {
-        // Ensure required fields exist
         if (!el.type) {
-          console.warn(`Element ${index} missing type, defaulting to rectangle`);
           el.type = 'rectangle';
         }
 
@@ -212,26 +185,18 @@ Example output (this is the ONLY acceptable format):
         return el;
       });
 
-      console.log(' Generated', validatedElements.length, 'valid elements');
       return validatedElements;
 
     } catch (error) {
-      console.error(' Diagram generation failed:', error);
-      
-      // Provide helpful error messages
       if (error instanceof Error) {
         if (error.message.includes('timeout') || error.message.includes('abort')) {
           throw new Error('Request took too long. Try a simpler diagram or try again.');
         }
-        
         if (error.message.includes('Network error')) {
           throw new Error('Cannot connect to AI service. Check your internet connection.');
         }
-        
-        // Re-throw our custom error messages
         throw error;
       }
-      
       throw new Error('Failed to generate diagram. Please try again.');
     }
   }

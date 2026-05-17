@@ -36,11 +36,10 @@ export function PropertiesPanel({
   const fillStyles = ['hachure', 'cross-hatch', 'solid'] as const;
 
   const handleClear = () => {
-    if (window.confirm('Are you sure you want to clear the canvas? This action cannot be undone.')) {
-      onClear();
-    }
-    onClose();
-  };
+    if (!window.confirm('Clear the canvas? This cannot be undone.')) return
+    onClear()
+    onClose()
+  }
 
   const handleExport = () => {
     try {

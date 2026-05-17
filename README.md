@@ -1,59 +1,63 @@
-#  Scriblio - AI-Powered Collaborative Whiteboard
+# Scriblio — AI-Powered Collaborative Whiteboard
 
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Stars](https://img.shields.io/github/stars/suwubh/Scriblio?style=social)
 ![Tech](https://img.shields.io/badge/Tech-React%20%7C%20TypeScript%20%7C%20Vite%20%7C%20Yjs-blue)
 
-A real-time collaborative whiteboard that combines **CRDT technology**, **AI assistance**, and a seamless **multiplayer experience** for teams to brainstorm, sketch, and create together.
+A real-time collaborative whiteboard with CRDT-based sync, WebRTC peer-to-peer networking, and an AI assistant that generates diagrams from natural language.
 
 ---
 
-##  Features
+## Features
 
-###  Core Whiteboard
-
-- **Real-time Collaboration** — Powered by Yjs CRDTs for conflict-free editing
-- **Intuitive Drawing Tools** — Smooth, responsive drawing with shapes and annotations
-- **Live Presence** — See who's online and actively editing in real-time
-- **Responsive Design** — Works seamlessly across desktop and mobile devices
-
-###  AI-Powered
-
-- **AI Command Palette** — Context-aware suggestions with Cmd/Ctrl + K
-- **Intelligent Assistance** — AI-powered content generation and optimization
-- **Smart Commands** — Natural language interface for whiteboard actions
-
-###  Collaboration Features
-
-- **Hybrid Networking** — WebRTC peer-to-peer with WebSocket fallback
-- **Redis Pub/Sub** — Real-time presence and signaling
-- **Version History** — Replay and time-travel through board changes
-- **Multiple Export Formats** — Save as PNG, PDF, or JSON
+- **Real-time collaboration** — Powered by [Yjs](https://github.com/yjs/yjs) CRDTs; multiple users can draw simultaneously without conflicts
+- **Hybrid networking** — WebRTC (P2P) with WebSocket fallback; automatically picks the best available transport
+- **Live cursors** — See teammates' cursors and selections in real time via the Yjs awareness protocol
+- **Drawing tools** — Selection, rectangle, ellipse, diamond, arrow, line, freehand, text, image, eraser
+- **AI assistant** — Press `Ctrl+K` / `⌘K` to generate diagrams, summarize the canvas, or get layout suggestions
+- **Undo / Redo** — Full history with `Ctrl+Z` / `Ctrl+Y`
+- **Export / Import** — Save and load board state as JSON
+- **Properties panel** — Adjust stroke color, fill, width, roughness, and opacity per item
 
 ---
 
-##  Tech Stack
+## Tech Stack
 
-**Frontend:** React 18, TypeScript, Vite, TailwindCSS  
-**Collaboration:** Yjs (CRDT), y-webrtc, WebSocket  
-**Backend:** Node.js, Redis, WebSocket Server  
-**AI:** Custom AI Server (OpenAI/Groq integration)
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, TypeScript, Vite, TailwindCSS |
+| Drawing | Custom canvas engine + RoughJS |
+| Collaboration | Yjs (CRDT), y-webrtc, y-websocket |
+| Real-time | WebSocket signaling server, Redis pub/sub bridge |
+| AI | Express proxy → OpenAI `gpt-4o-mini` (Groq `llama-3.3-70b-versatile` fallback) |
 
 ---
 
-##  Quick Start
+## Architecture
+
+```
+Browser client
+├── Yjs document (CRDT state)
+│   ├── y-webrtc  → WebRTC P2P  → Signaling server (ws://localhost:4000)
+│   └── y-websocket → WebSocket → wss://demos.yjs.dev (public fallback)
+├── Redis bridge (ws://localhost:8080) → Redis pub/sub
+│   └── presence & signaling channels
+└── AI assistant → AI proxy (http://localhost:3001/api/chat)
+                   └── OpenAI gpt-4o-mini  (Groq llama fallback)
+```
+
+Rooms are identified by the URL hash (e.g. `http://localhost:5173/#myroom`). Share the URL to invite collaborators into the same session.
+
+---
+
+## Quick Start
 
 ### Prerequisites
 
-Ensure you have the following installed:
+- **Node.js** ≥ 18
+- **npm**
+- **Redis** (local install or Docker)
 
-- **Node.js** >= 18.0.0
-- **npm** or **yarn**
-- **Redis** (or Docker to run Redis)
-
-### Installation
-
-Clone the repository and install dependencies:
+### 1. Clone and install
 
 ```bash
 git clone https://github.com/suwubh/Scriblio.git
@@ -61,329 +65,140 @@ cd Scriblio
 npm install
 ```
 
-### Environment Setup
-
-Create environment configuration files:
+### 2. Environment setup
 
 ```bash
-# Copy environment template
-cp .env.example .env.local
+# Frontend (.env.local in project root)
+VITE_SIGNALING_URLS=ws://localhost:4000
+VITE_REDIS_WS_URL=ws://localhost:8080
+VITE_WEBSOCKET_URL=wss://demos.yjs.dev/ws
+VITE_PROXY_URL=http://localhost:3001/api/chat
 ```
 
-Edit `.env.local` with your configuration:
-
-```env
-# Scriblio Frontend
-VITE_WS_URL=ws://localhost:8080
-VITE_AI_SERVER_URL=http://localhost:3001
-
-# AI Server
+```bash
+# AI proxy (server/.env)
 OPENAI_API_KEY=your_openai_key_here
-# OR
-GROQ_API_KEY=your_anthropic_key_here
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
+GROQ_API_KEY=your_groq_key_here   # optional fallback
+PORT=3001
 ```
+
+> The app also works without Redis and without an AI key — collaboration falls back to the public Yjs WebSocket server, and the AI panel will show a connection error.
 
 ---
 
-##  Running Locally
+## Running Locally
 
-Scriblio requires **four servers** to run locally. Follow these steps:
+Four processes need to run simultaneously. Open four terminal windows.
 
-### 1 Start Redis Server
-
-**Option A: Using Docker (Recommended)**
+### Terminal 1 — Redis
 
 ```bash
+# Docker (recommended)
 docker run -d -p 6379:6379 --name scriblio-redis redis:alpine
-```
 
-**Option B: Local Redis Installation**
-
-```bash
-# macOS (Homebrew)
+# Or local install (macOS)
 brew services start redis
 
-# Linux (systemd)
-sudo systemctl start redis
-
-# Windows
-# Download and run from https://redis.io/download
+# Verify
+redis-cli ping   # should print: PONG
 ```
 
-Verify Redis is running:
-
-```bash
-redis-cli ping
-# Should return: PONG
-```
-
----
-
-### 2 Start Signaling Server
-
-The signaling server handles WebSocket connections and WebRTC coordination.
+### Terminal 2 — WebRTC signaling server
 
 ```bash
 cd signaling-server
 npm install
 npm start
+# → WebSocket server on ws://localhost:4000
+# → Health check at http://localhost:4001/health
 ```
 
-**Default Port:** `8080`  
-**Expected Output:** `WebSocket signaling server running on port 8080`
+### Terminal 3 — Redis WebSocket bridge
 
----
+```bash
+cd redis-server
+npm install
+npm start
+# → WebSocket bridge on ws://localhost:8080
+```
 
-### 3 Start AI Server
-
-The AI server provides intelligent assistance and command processing.
+### Terminal 4 — AI proxy
 
 ```bash
 cd server
 npm install
 npm start
+# → Express API on http://localhost:3001
 ```
 
-**Default Port:** `3001`  
-**Expected Output:** `AI server running on port 3001`
-
-**Note:** Make sure your API key (OpenAI or Anthropic) is configured in `.env`
-
----
-
-### 4 Start Scriblio Frontend
-
-The main React application that users interact with.
+### Terminal 5 — Frontend
 
 ```bash
-# From project root
+# from project root
 npm run dev
+# → http://localhost:5173
 ```
 
-**Default Port:** `5173`  
-**Access:** Open [http://localhost:5173](http://localhost:5173) in your browser
+Open `http://localhost:5173` in your browser. A room ID is automatically generated and added to the URL hash. Share that URL with anyone to collaborate in the same room.
 
 ---
 
-##  Verification Checklist
-
-After starting all servers, verify everything is running:
-
-- [ ] Redis: `redis-cli ping` returns `PONG`
-- [ ] Signaling Server: Check terminal for "WebSocket signaling server running"
-- [ ] AI Server: Check terminal for "AI server running on port 3001"
-- [ ] Scriblio Frontend: Browser opens to `localhost:5173`
-- [ ] Test collaboration: Open two browser tabs and draw on both
-
----
-
-##  Project Structure
+## Folder Structure
 
 ```
 Scriblio/
-├── public/                 # Static assets
-├── src/                    # Frontend source code
-│   ├── assets/             # Images, icons, resources
-│   ├── collaboration/      # CRDT & networking logic
-│   ├── components/         # React components
-│   ├── engine/             # Whiteboard drawing engine
-│   ├── hooks/              # Custom React hooks
-│   ├── styles/             # Global styles
-│   ├── types/              # TypeScript definitions
-│   ├── App.tsx             # Root component
-│   └── main.tsx            # Entry point
-├── signaling-server/       # WebSocket signaling server
-├── server/                 # AI assistance server
-├── redis-server/           # Redis configuration
-├── package.json            # Dependencies & scripts
-├── vite.config.ts          # Vite configuration
-├── tailwind.config.js      # TailwindCSS config
-└── tsconfig.json           # TypeScript config
+├── src/
+│   ├── collaboration/       # Yjs providers, WebRTC/Redis managers, presence hooks
+│   ├── components/          # React UI (canvas, toolbar, panels, AI modal)
+│   ├── engine/              # Canvas renderer and pointer event handler
+│   ├── hooks/               # useExcalidrawState, useUndoRedo
+│   ├── services/            # aiService.ts — AI API client
+│   ├── types/               # TypeScript definitions
+│   └── App.tsx
+├── signaling-server/        # WebRTC signaling (ws, port 4000)
+├── redis-server/            # Redis pub/sub bridge (ws, port 8080)
+└── server/                  # AI proxy (Express, port 3001)
 ```
 
 ---
 
-##  Usage Guide
+## Troubleshooting
 
-### Creating a Session
-
-1. Open Scriblio in your browser
-2. A new whiteboard session is created automatically
-3. Copy the URL to share with collaborators
-
-### Drawing & Collaboration
-
-- **Draw:** Click and drag on the canvas
-- **Shapes:** Use the toolbar to add rectangles, circles, lines
-- **Select:** Click the selection tool to move/resize objects
-- **Undo/Redo:** Cmd/Ctrl + Z and Cmd/Ctrl + Shift + Z
-
-### AI Commands
-
-1. Press **Cmd/Ctrl + K** to open the AI command palette
-2. Type natural language commands:
-   - "Create a flowchart for user authentication"
-   - "Add a sticky note with project goals"
-   - "Organize these elements into a grid"
-3. AI will execute or suggest actions
-
-### Export & Save
-
-- **PNG:** Click Export → PNG for a static image
-- **PDF:** Click Export → PDF for a document
-- **JSON:** Click Export → JSON to save board state
+| Problem | Fix |
+|---|---|
+| Redis connection failed | Run `redis-cli ping` and confirm Redis is running |
+| Signaling server not found | Check `ws://localhost:4000` is reachable; verify Terminal 2 is running |
+| AI not responding | Confirm `OPENAI_API_KEY` is set in `server/.env`; check Terminal 3 logs |
+| Port already in use (Windows) | `netstat -ano \| findstr :<PORT>` then `taskkill /PID <PID> /F` |
+| Port already in use (macOS/Linux) | `lsof -ti:<PORT> \| xargs kill` |
 
 ---
 
-##  Production Deployment
-
-Build for production:
+## Production Build
 
 ```bash
-npm run build
+npm run build    # outputs to dist/
+npm run preview  # test production build locally
 ```
 
-Preview production build:
-
-```bash
-npm run preview
-```
-
-The `dist/` folder contains optimized static files ready for deployment to:
-
-- Vercel
-- Netlify
-- AWS S3 + CloudFront
-- Any static hosting service
-
-**Don't forget to deploy:**
-
-- Signaling server (WebSocket)
-- AI server (API endpoint)
-- Redis instance (managed service recommended)
+Deploy `dist/` to any static host (Vercel, Netlify, S3). The signaling server, Redis bridge, and AI proxy need to be deployed separately and their URLs updated in environment variables.
 
 ---
 
-##  Troubleshooting
+## Roadmap
 
-### Redis Connection Failed
-
-```bash
-# Check if Redis is running
-redis-cli ping
-
-# Restart Redis
-docker restart scriblio-redis
-# OR
-brew services restart redis
-```
-
-### WebSocket Connection Error
-
-- Verify signaling server is running on port 8080
-- Check firewall settings
-- Ensure `VITE_WS_URL` in `.env.local` is correct
-
-### AI Server Not Responding
-
-- Verify API key is set in `.env`
-- Check AI server logs for errors
-- Ensure port 3001 is not in use
-
-### Port Already in Use
-
-```bash
-# Kill process on port (macOS/Linux)
-lsof -ti:5173 | xargs kill
-lsof -ti:8080 | xargs kill
-lsof -ti:3001 | xargs kill
-
-# Windows
-netstat -ano | findstr :5173
-taskkill /PID <PID> /F
-```
+- [ ] Persistent room storage (PostgreSQL / MongoDB)
+- [ ] User accounts and room permissions
+- [ ] Inline text editor (replace browser `prompt()`)
+- [ ] Mobile touch support improvements
+- [ ] Export to PNG and PDF
 
 ---
 
-##  Roadmap
+## License
 
-- [ ] **Authentication** — User accounts and permissions
-- [ ] **Cloud Storage** — Persistent board storage (PostgreSQL/MongoDB)
-- [ ] **Voice Chat** — Integrated audio communication
-- [ ] **Templates** — Pre-built board templates
-- [ ] **Mobile App** — Native iOS/Android clients
-- [ ] **Plugins** — Extensible plugin system
-- [ ] **Team Management** — Organizations and workspaces
+MIT — see [LICENSE](./LICENSE).
 
 ---
 
-##  Contributing
-
-We welcome contributions! Here's how to get started:
-
-```bash
-# 1. Fork the repository on GitHub
-
-# 2. Clone your fork
-git clone https://github.com/YOUR_USERNAME/Scriblio.git
-cd Scriblio
-
-# 3. Create a feature branch
-git checkout -b feature/amazing-feature
-
-# 4. Make your changes and commit
-git commit -m "Add: amazing feature description"
-
-# 5. Push to your fork
-git push origin feature/amazing-feature
-
-# 6. Open a Pull Request
-```
-
-### Development Guidelines
-
-- Follow existing TypeScript and React patterns
-- Write meaningful commit messages
-- Add tests for new features
-- Update documentation as needed
-- Run `npm run lint` before committing
-
----
-
-##  License
-
-This project is licensed under the **MIT License**. See [LICENSE](./LICENSE) for details.
-
----
-
-##  Acknowledgments
-
-Built with amazing open-source technologies:
-
-- [Yjs](https://github.com/yjs/yjs) — CRDT implementation
-- [React](https://react.dev/) — UI framework
-- [Vite](https://vitejs.dev/) — Build tool
-- [TailwindCSS](https://tailwindcss.com/) — Utility-first CSS
-- [Redis](https://redis.io/) — In-memory data store
-
----
-
-##  Support & Contact
-
--  **Issues:** [GitHub Issues](https://github.com/suwubh/Scriblio/issues)
--  **Discussions:** [GitHub Discussions](https://github.com/suwubh/Scriblio/discussions)
--  **Email:** [subhankarsatpathy69@gmail.com](mailto:subhankarsatpathy69@gmail.com)
-
----
-
-<div align="center">
-
-**⭐ Star this repo if you find it useful!**
-
-Made with  by [suwubh](https://github.com/suwubh)
-
-</div>
+Made by [suwubh](https://github.com/suwubh)

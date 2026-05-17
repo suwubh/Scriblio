@@ -17,22 +17,18 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
   const preventNextOpen = useRef(false);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Prevent conflicts with browser shortcuts
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
       e.preventDefault();
       e.stopPropagation();
-      
-      // Prevent double-trigger on some systems
+
       if (preventNextOpen.current) {
         preventNextOpen.current = false;
         return;
       }
-      
+
       setIsOpen(prev => !prev);
       preventNextOpen.current = true;
-      setTimeout(() => {
-        preventNextOpen.current = false;
-      }, 100);
+      setTimeout(() => { preventNextOpen.current = false; }, 100);
     }
   }, []);
 
@@ -44,7 +40,6 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    // Use capture phase to handle before other listeners
     document.addEventListener('keydown', handleKeyDown, { capture: true });
     document.addEventListener('keydown', handleEscape);
 
@@ -67,7 +62,7 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
         <span className="ai-floating-icon" aria-hidden="true">✨</span>
         <span className="ai-floating-text">AI Assistant</span>
         <kbd className="ai-floating-shortcut">
-          {navigator.platform.includes('Mac') ? '⌘K' : 'Ctrl+K'}
+          {/Mac|iPhone|iPad/i.test(navigator.userAgent) ? '⌘K' : 'Ctrl+K'}
         </kbd>
       </button>
 

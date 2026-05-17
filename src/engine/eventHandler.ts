@@ -134,7 +134,7 @@ export class EventHandler {
     }
   }
 
-  private handlePointerUp(_event: PointerEvent) {
+  private handlePointerUp() {
     this.isDrawing = false;
 
     if (this.appState.activeTool === 'selection') {
