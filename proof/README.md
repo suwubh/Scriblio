@@ -29,5 +29,4 @@ Look for the `sync_latency_ms` line in the summary. Screenshot is in
 
 ## User study
 
-See [user-study.md](./user-study.md). Raw responses in
-`user-study-responses.csv`.
+See [user-study.md](./user-study.md).
