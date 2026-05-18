@@ -9,9 +9,9 @@ A real-time collaborative whiteboard with CRDT-based sync, WebRTC peer-to-peer n
 
 ## Features
 
-- **Real-time collaboration** — Powered by [Yjs](https://github.com/yjs/yjs) CRDTs; multiple users can draw simultaneously without conflicts
-- **Hybrid networking** — WebRTC (P2P) with WebSocket fallback; automatically picks the best available transport
-- **Live cursors** — See teammates' cursors and selections in real time via the Yjs awareness protocol
+- **Real-time collaboration** — [Yjs](https://github.com/yjs/yjs) CRDTs with [`y-webrtc`](https://github.com/yjs/y-webrtc) for peer-to-peer sync, plus a custom WebSocket signaling server
+- **Hybrid networking** — WebRTC (P2P) with WebSocket fallback
+- **Live cursors** — teammates' cursors and selections in real time via the Yjs awareness protocol
 - **Drawing tools** — Selection, rectangle, ellipse, diamond, arrow, line, freehand, text, image, eraser
 - **AI assistant** — Press `Ctrl+K` / `⌘K` to generate diagrams, summarize the canvas, or get layout suggestions
 - **Undo / Redo** — Full history with `Ctrl+Z` / `Ctrl+Y`
@@ -51,7 +51,27 @@ Rooms are identified by the URL hash (e.g. `http://localhost:5173/#myroom`). Sha
 
 ## Quick Start
 
-### Prerequisites
+Docker Compose runs the whole stack (Redis, signaling, AI proxy, frontend)
+in one command:
+
+```bash
+git clone https://github.com/suwubh/Scriblio.git
+cd Scriblio
+
+# Optional: API keys for the AI palette
+echo "OPENAI_API_KEY=your_key_here" > .env
+# echo "GROQ_API_KEY=your_key_here" >> .env
+
+docker compose up --build
+# frontend       http://localhost:5173
+# signaling      ws://localhost:4000  (health: http://localhost:4001/health)
+# redis bridge   ws://localhost:8080
+# AI proxy       http://localhost:3001
+```
+
+To run the services natively instead, follow the manual setup below.
+
+### Prerequisites (manual setup)
 
 - **Node.js** ≥ 18
 - **npm**
@@ -171,6 +191,23 @@ Scriblio/
 | AI not responding | Confirm `OPENAI_API_KEY` is set in `server/.env`; check Terminal 3 logs |
 | Port already in use (Windows) | `netstat -ano \| findstr :<PORT>` then `taskkill /PID <PID> /F` |
 | Port already in use (macOS/Linux) | `lsof -ti:<PORT> \| xargs kill` |
+
+---
+
+## Load Testing
+
+The signaling server has a `/bench` WebSocket path that echoes JSON pings,
+which [k6](https://k6.io/) uses to measure round-trip latency without
+touching the Yjs binary protocol.
+
+```bash
+# with the stack running:
+k6 run --out json=proof/loadtest-scriblio-results.json \
+       proof/loadtest-scriblio.js \
+       | tee proof/loadtest-scriblio-output.txt
+```
+
+Full results and notes in [`proof/`](./proof/).
 
 ---
 

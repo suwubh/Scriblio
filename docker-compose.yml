@@ -1,0 +1,56 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  signaling:
+    build: ./signaling-server
+    ports:
+      - "4000:4000"
+      - "4001:4001"
+    environment:
+      PORT: "4000"
+      HEALTH_PORT: "4001"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis-bridge:
+    build: ./redis-server
+    ports:
+      - "8080:8080"
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  ai-server:
+    build: ./server
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: "3001"
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+
+  frontend:
+    build:
+      context: .
+      args:
+        VITE_SIGNALING_URLS: ws://localhost:4000
+        VITE_REDIS_WS_URL: ws://localhost:8080
+        VITE_WEBSOCKET_URL: wss://demos.yjs.dev/ws
+        VITE_PROXY_URL: http://localhost:3001/api/chat
+    ports:
+      - "5173:80"
+    depends_on:
+      - signaling
+      - redis-bridge
+      - ai-server

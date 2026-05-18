@@ -2,6 +2,7 @@
   "name": "scriblio-ai-proxy",
   "version": "1.0.0",
   "description": "Proxy server for Scriblio AI API calls",
+  "type": "module",
   "main": "proxy-server.js",
   "scripts": {
     "start": "node proxy-server.js",

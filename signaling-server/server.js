@@ -1,24 +1,60 @@
 const WebSocket = require('ws')
 const { v4: uuidv4 } = require('uuid')
+const http = require('http')
 
-// Create WebSocket server
-const wss = new WebSocket.Server({ 
-  port: 4000,
-  perMessageDeflate: false
+const PORT = Number(process.env.PORT) || 4000
+const HEALTH_PORT = Number(process.env.HEALTH_PORT) || 4001
+
+// Route WS upgrades by path: `/` for signaling, `/bench` for k6 ping echo.
+const httpServer = http.createServer()
+
+const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false })
+const benchWss = new WebSocket.Server({ noServer: true, perMessageDeflate: false })
+
+httpServer.on('upgrade', (request, socket, head) => {
+  const { url } = request
+  if (url === '/bench') {
+    benchWss.handleUpgrade(request, socket, head, (ws) => {
+      benchWss.emit('connection', ws, request)
+    })
+  } else {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request)
+    })
+  }
 })
 
 // Store active connections by room
 const rooms = new Map()
 const clients = new Map()
 
-console.log('Scriblio Signaling Server running on ws://localhost:4000')
+httpServer.listen(PORT, () => {
+  console.log(`Scriblio Signaling Server running on ws://localhost:${PORT}`)
+  console.log(`Bench endpoint available at ws://localhost:${PORT}/bench`)
+})
+
+// Echo `sentAt` back so k6 can compute RTT against this endpoint.
+benchWss.on('connection', (ws) => {
+  ws.on('message', (data) => {
+    try {
+      const message = JSON.parse(data.toString())
+      ws.send(JSON.stringify({
+        type: 'pong',
+        sentAt: message.sentAt,
+        echoedAt: Date.now(),
+      }))
+    } catch (_err) {
+      // ignore non-JSON frames on bench channel
+    }
+  })
+})
 
 wss.on('connection', (ws, request) => {
   const clientId = uuidv4()
   clients.set(ws, { id: clientId, rooms: new Set() })
-  
+
   console.log(`Client connected: ${clientId}`)
-  
+
   ws.on('message', (data) => {
     try {
       const message = JSON.parse(data.toString())
@@ -69,8 +105,7 @@ function handleMessage(ws, message) {
       handlePublish(ws, message, client)
       break
     case 'ping':
-      // Respond to ping with pong
-      ws.send(JSON.stringify({ type: 'pong' }))
+      ws.send(JSON.stringify({ type: 'pong', sentAt: message.sentAt }))
       break
     default:
       console.log(`Unknown message type: ${message.type}`)
@@ -137,13 +172,12 @@ function broadcastToRoom(roomName, message, exclude = null) {
   })
 }
 
-// Health check endpoint
-const http = require('http')
+// Health check on a separate port so it stays simple to scrape.
 const healthServer = http.createServer((req, res) => {
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' })
-    res.end(JSON.stringify({ 
-      status: 'healthy', 
+    res.end(JSON.stringify({
+      status: 'healthy',
       clients: clients.size,
       rooms: rooms.size,
       timestamp: new Date().toISOString()
@@ -154,25 +188,22 @@ const healthServer = http.createServer((req, res) => {
   }
 })
 
-healthServer.listen(4001, () => {
-  console.log('Health check server running on http://localhost:4001/health')
+healthServer.listen(HEALTH_PORT, () => {
+  console.log(`Health check server running on http://localhost:${HEALTH_PORT}/health`)
 })
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
+function shutdown() {
   console.log('Shutting down signaling server...')
   wss.close(() => {
-    healthServer.close(() => {
-      process.exit(0)
+    benchWss.close(() => {
+      httpServer.close(() => {
+        healthServer.close(() => {
+          process.exit(0)
+        })
+      })
     })
   })
-})
+}
 
-process.on('SIGINT', () => {
-  console.log('Shutting down signaling server...')
-  wss.close(() => {
-    healthServer.close(() => {
-      process.exit(0)
-    })
-  })
-})
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)

@@ -22,6 +22,9 @@ dist-ssr
 # Claude Code
 .claude
 
+# k6 raw per-sample output (large; summary lives in the .txt file)
+proof/*-results.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
