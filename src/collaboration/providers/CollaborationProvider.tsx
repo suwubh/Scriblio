@@ -137,22 +137,24 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
       setWebrtcProvider(webrtc)
       webrtcCleanup = () => webrtc.destroy()
 
-      const ws = new WebsocketProvider(
-        config.websocketUrl || 'wss://demos.yjs.dev/ws',
-        config.roomId,
-        documentManager.doc,
-        { connect: true }
-      )
+      if (config.websocketUrl) {
+        const ws = new WebsocketProvider(
+          config.websocketUrl,
+          config.roomId,
+          documentManager.doc,
+          { connect: true }
+        )
 
-      ws.on('status', (event: { status: ConnectionStatus['websocket'] }) => {
-        setConnectionStatus((prev) => ({
-          ...prev,
-          websocket: event.status,
-        }))
-      })
+        ws.on('status', (event: { status: ConnectionStatus['websocket'] }) => {
+          setConnectionStatus((prev) => ({
+            ...prev,
+            websocket: event.status,
+          }))
+        })
 
-      setWebsocketProvider(ws)
-      wsCleanup = () => ws.destroy()
+        setWebsocketProvider(ws)
+        wsCleanup = () => ws.destroy()
+      }
 
       hasInitialized.current = true
       isInitializing.current = false
