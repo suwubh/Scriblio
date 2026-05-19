@@ -3,10 +3,27 @@ const { v4: uuidv4 } = require('uuid')
 const http = require('http')
 
 const PORT = Number(process.env.PORT) || 4000
-const HEALTH_PORT = Number(process.env.HEALTH_PORT) || 4001
 
-// Route WS upgrades by path: `/` for signaling, `/bench` for k6 ping echo.
-const httpServer = http.createServer()
+const rooms = new Map()
+const clients = new Map()
+
+// HTTP + WS on the same port (Render free tier only exposes one).
+// GET / and GET /health respond with status JSON; everything else is a WS upgrade.
+const httpServer = http.createServer((req, res) => {
+  if (req.url === '/' || req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({
+      status: 'healthy',
+      service: 'scriblio-signaling',
+      clients: clients.size,
+      rooms: rooms.size,
+      timestamp: new Date().toISOString(),
+    }))
+    return
+  }
+  res.writeHead(404)
+  res.end('Not Found')
+})
 
 const wss = new WebSocket.Server({ noServer: true, perMessageDeflate: false })
 const benchWss = new WebSocket.Server({ noServer: true, perMessageDeflate: false })
@@ -24,13 +41,8 @@ httpServer.on('upgrade', (request, socket, head) => {
   }
 })
 
-// Store active connections by room
-const rooms = new Map()
-const clients = new Map()
-
 httpServer.listen(PORT, () => {
-  console.log(`Scriblio Signaling Server running on ws://localhost:${PORT}`)
-  console.log(`Bench endpoint available at ws://localhost:${PORT}/bench`)
+  console.log(`Scriblio Signaling Server running on port ${PORT}`)
 })
 
 // Echo `sentAt` back so k6 can compute RTT against this endpoint.
@@ -172,34 +184,12 @@ function broadcastToRoom(roomName, message, exclude = null) {
   })
 }
 
-// Health check on a separate port so it stays simple to scrape.
-const healthServer = http.createServer((req, res) => {
-  if (req.url === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' })
-    res.end(JSON.stringify({
-      status: 'healthy',
-      clients: clients.size,
-      rooms: rooms.size,
-      timestamp: new Date().toISOString()
-    }))
-  } else {
-    res.writeHead(404)
-    res.end('Not Found')
-  }
-})
-
-healthServer.listen(HEALTH_PORT, () => {
-  console.log(`Health check server running on http://localhost:${HEALTH_PORT}/health`)
-})
-
 function shutdown() {
   console.log('Shutting down signaling server...')
   wss.close(() => {
     benchWss.close(() => {
       httpServer.close(() => {
-        healthServer.close(() => {
-          process.exit(0)
-        })
+        process.exit(0)
       })
     })
   })
