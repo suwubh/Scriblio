@@ -9,15 +9,17 @@ const redisClient = Redis.createClient({
 const redisSubscriber = redisClient.duplicate()
 const redisPublisher = redisClient.duplicate()
 
+const PORT = Number(process.env.PORT) || 8080
+
 // WebSocket server
-const wss = new WebSocket.Server({ 
-  port: 8080,
+const wss = new WebSocket.Server({
+  port: PORT,
   cors: {
     origin: '*'
   }
 })
 
-console.log('Redis WebSocket bridge running on ws://localhost:8080')
+console.log(`Redis WebSocket bridge running on ws://localhost:${PORT}`)
 
 // Connect to Redis
 async function connectRedis() {
