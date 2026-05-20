@@ -32,6 +32,8 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
     const hasInitialized = useRef(false)
 
     const [textDraft, setTextDraft] = useState<TextDraft | null>(null)
+    const textareaRef = useRef<HTMLTextAreaElement>(null)
+    const textHandledRef = useRef(false)
 
     const { users, updateCursor } = usePresence()
 
@@ -132,11 +134,26 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
       }
     }
 
-    const commitTextDraft = (value: string) => {
-      if (textDraft && value.trim()) {
+    // Focus the inline text editor on the next tick. Focusing it synchronously
+    // inside the opening click lets the browser's own click-focus handling blur
+    // it right away, which would close the editor before you could type.
+    useEffect(() => {
+      if (!textDraft) return
+      textHandledRef.current = false
+      const id = window.setTimeout(() => textareaRef.current?.focus(), 0)
+      return () => window.clearTimeout(id)
+    }, [textDraft])
+
+    // Closes the editor exactly once (blur fires again on unmount otherwise).
+    // The functional update only clears *this* draft — if the user clicked to
+    // start a new one, that fresh draft is left untouched.
+    const closeText = (commit: boolean, value: string) => {
+      if (textHandledRef.current) return
+      textHandledRef.current = true
+      if (commit && textDraft && value.trim()) {
         appRef.current?.commitText(textDraft.canvasPoint, value)
       }
-      setTextDraft(null)
+      setTextDraft((current) => (current === textDraft ? null : current))
     }
 
     const renderRemoteCursors = () => {
@@ -192,7 +209,7 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
         {renderRemoteCursors()}
         {textDraft && (
           <textarea
-            autoFocus
+            ref={textareaRef}
             className="canvas-text-input"
             style={{
               position: 'absolute',
@@ -201,14 +218,14 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
               fontSize: appState.currentItemFontSize * appState.viewTransform.zoom,
               color: appState.currentItemStrokeColor,
             }}
-            onBlur={(e) => commitTextDraft(e.target.value)}
+            onBlur={(e) => closeText(true, e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
-                commitTextDraft((e.target as HTMLTextAreaElement).value)
+                closeText(true, (e.target as HTMLTextAreaElement).value)
               } else if (e.key === 'Escape') {
                 e.preventDefault()
-                setTextDraft(null)
+                closeText(false, '')
               }
             }}
           />
