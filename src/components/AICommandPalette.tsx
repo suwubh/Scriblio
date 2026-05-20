@@ -8,6 +8,20 @@ interface AICommandPaletteProps {
   onAddElements: (elements: Partial<ExcalidrawElement>[]) => void;
 }
 
+const SparklesGlyph = () => (
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M12 3c.7 5 2.9 7.2 8 8-5.1.8-7.3 3-8 8-.7-5-2.9-7.2-8-8 5.1-.8 7.3-3 8-8Z"
+      fill="currentColor"
+    />
+    <path
+      d="M19 3c.2 1.7.9 2.5 2.6 2.8-1.7.3-2.4 1.1-2.6 2.8-.2-1.7-.9-2.5-2.6-2.8C17.1 5.5 17.8 4.7 19 3Z"
+      fill="currentColor"
+      opacity=".55"
+    />
+  </svg>
+);
+
 export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
   elements,
   selectedElements,
@@ -59,10 +73,12 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
         aria-haspopup="dialog"
         aria-expanded={isOpen}
       >
-        <span className="ai-floating-icon" aria-hidden="true">✨</span>
+        <span className="ai-floating-icon" aria-hidden="true">
+          <SparklesGlyph />
+        </span>
         <span className="ai-floating-text">AI Assistant</span>
         <kbd className="ai-floating-shortcut">
-          {/Mac|iPhone|iPad/i.test(navigator.userAgent) ? '⌘K' : 'Ctrl+K'}
+          {/Mac|iPhone|iPad/i.test(navigator.userAgent) ? '⌘K' : 'Ctrl K'}
         </kbd>
       </button>
 

@@ -17,6 +17,161 @@ interface MessageWithId extends AIMessage {
   timestamp: number;
 }
 
+/* --------------------------------- Icons --------------------------------- */
+type IconProps = React.SVGProps<SVGSVGElement>;
+
+const Sparkles = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" {...p}>
+    <path
+      d="M12 3c.7 5 2.9 7.2 8 8-5.1.8-7.3 3-8 8-.7-5-2.9-7.2-8-8 5.1-.8 7.3-3 8-8Z"
+      fill="currentColor"
+    />
+    <path
+      d="M19 3c.2 1.7.9 2.5 2.6 2.8-1.7.3-2.4 1.1-2.6 2.8-.2-1.7-.9-2.5-2.6-2.8C17.1 5.5 17.8 4.7 19 3Z"
+      fill="currentColor"
+      opacity=".5"
+    />
+  </svg>
+);
+
+const ChatIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" {...p}>
+    <path
+      d="M20 11.4a7.6 7.6 0 0 1-11 6.8L4.5 19.5l1.3-4.4A7.6 7.6 0 1 1 20 11.4Z"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const SummarizeIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M6 3h7l5 5v13H6Z" />
+    <path d="M13 3v5h5" />
+    <path d="M9 12.5h6M9 16.5h4" />
+  </svg>
+);
+
+const BoltIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" {...p}>
+    <path d="M13 2 5 13h5l-1 9 9-12h-5l1-8Z" fill="currentColor" />
+  </svg>
+);
+
+const ArrowUpIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M12 20V5M6 11l6-6 6 6" />
+  </svg>
+);
+
+const CloseIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" {...p}>
+    <path d="M6 6 18 18M18 6 6 18" />
+  </svg>
+);
+
+const TrashIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M4 7h16M9 7V4.5h6V7M6.5 7l.8 13h9.4l.8-13" />
+  </svg>
+);
+
+const UserIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <circle cx="12" cy="8.5" r="3.7" />
+    <path d="M5 20a7 7 0 0 1 14 0" />
+  </svg>
+);
+
+const WarningIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M12 3 22 20H2L12 3Z" />
+    <path d="M12 10v4.5M12 17.6h.01" />
+  </svg>
+);
+
+const Spinner = (p: IconProps) => (
+  <svg className="ai-spinner" viewBox="0 0 24 24" fill="none" {...p}>
+    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.4" opacity=".25" />
+    <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+  </svg>
+);
+
+/* Quick-action glyphs */
+const ShapesIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" {...p}>
+    <rect x="3" y="6" width="11" height="9" rx="2" />
+    <rect x="10" y="10" width="11" height="8" rx="2" />
+  </svg>
+);
+
+const FlowIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <rect x="7" y="3" width="10" height="6" rx="1.6" />
+    <rect x="7" y="15" width="10" height="6" rx="1.6" />
+    <path d="M12 9v6" />
+  </svg>
+);
+
+const CirclesIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" {...p}>
+    <circle cx="7" cy="9" r="3.3" />
+    <circle cx="16" cy="7" r="2.7" />
+    <circle cx="13.5" cy="16.5" r="3.6" />
+  </svg>
+);
+
+const MindmapIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" {...p}>
+    <circle cx="12" cy="12" r="3" />
+    <circle cx="4.5" cy="5" r="2" />
+    <circle cx="19.5" cy="5" r="2" />
+    <circle cx="4.5" cy="19" r="2" />
+    <circle cx="19.5" cy="19" r="2" />
+    <path d="M9.8 10.1 6.1 6.4M14.2 10.1 17.9 6.4M9.8 13.9 6.1 17.6M14.2 13.9 17.9 17.6" />
+  </svg>
+);
+
+const HierarchyIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <rect x="9" y="3" width="6" height="5" rx="1.2" />
+    <rect x="2.5" y="15" width="6" height="5" rx="1.2" />
+    <rect x="15.5" y="15" width="6" height="5" rx="1.2" />
+    <path d="M12 8v3.5M5.5 15v-3.5h13V15" />
+  </svg>
+);
+
+/* --------------------------------- Config -------------------------------- */
+const MODES: { id: AIMode; label: string; Icon: (p: IconProps) => React.ReactElement }[] = [
+  { id: 'generate', label: 'Generate', Icon: Sparkles },
+  { id: 'chat', label: 'Chat', Icon: ChatIcon },
+  { id: 'summarize', label: 'Summarize', Icon: SummarizeIcon },
+  { id: 'optimize', label: 'Optimize', Icon: BoltIcon },
+];
+
+const QUICK_ACTIONS: { Icon: (p: IconProps) => React.ReactElement; title: string; prompt: string }[] = [
+  { Icon: ShapesIcon, title: 'Row of rectangles', prompt: 'Create 3 blue rectangles in a horizontal line' },
+  { Icon: FlowIcon, title: 'Flowchart', prompt: 'Make a simple flowchart with 4 steps' },
+  { Icon: CirclesIcon, title: 'Pentagon of circles', prompt: 'Draw 5 circles arranged in a pentagon' },
+  { Icon: MindmapIcon, title: 'Mind map', prompt: 'Create a mind map with a center node and 4 branches' },
+  { Icon: HierarchyIcon, title: 'Org chart', prompt: 'Make a simple org chart with 3 levels' },
+];
+
+const WELCOME: Record<AIMode, { title: string; text: string }> = {
+  generate: { title: 'Bring ideas to life', text: 'Describe what you want and watch it appear on your canvas.' },
+  chat: { title: 'Ask me anything', text: 'Brainstorm, get design advice, or talk through your diagram.' },
+  summarize: { title: 'Summarize your canvas', text: 'Get a clear written overview of everything you have drawn.' },
+  optimize: { title: 'Refine your layout', text: 'Get concrete suggestions to improve spacing and structure.' },
+};
+
+const PLACEHOLDER: Record<AIMode, string> = {
+  generate: 'Describe what you want to create…',
+  chat: 'Ask me anything…',
+  summarize: 'Press Enter to summarize your canvas…',
+  optimize: 'Press Enter for layout suggestions…',
+};
+
 export const AIModal: React.FC<AIModalProps> = ({
   isOpen,
   onClose,
@@ -45,7 +200,7 @@ export const AIModal: React.FC<AIModalProps> = ({
     }
   }, [isOpen]);
 
-  // Clear error after 5 seconds
+  // Clear error after a while
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(null), 8000);
@@ -130,12 +285,12 @@ export const AIModal: React.FC<AIModalProps> = ({
             });
 
             onAddElements(elementsToAdd);
-            response = `✨ Successfully created ${elementsToAdd.length} element${elementsToAdd.length !== 1 ? 's' : ''} on your canvas!`;
+            response = `Created ${elementsToAdd.length} element${elementsToAdd.length !== 1 ? 's' : ''} on your canvas.`;
           } catch (genError: any) {
             console.error('Generation error:', genError);
-            
+
             let errorMsg = 'Failed to generate diagram. ';
-            
+
             if (genError.message.includes('JSON')) {
               errorMsg += 'The AI had trouble formatting the response. Try a simpler description like "Create 3 blue rectangles in a row".';
             } else if (genError.message.includes('timeout') || genError.message.includes('took too long')) {
@@ -145,7 +300,7 @@ export const AIModal: React.FC<AIModalProps> = ({
             } else {
               errorMsg += genError.message || 'Please try again with a different description.';
             }
-            
+
             throw new Error(errorMsg);
           }
           break;
@@ -193,58 +348,68 @@ export const AIModal: React.FC<AIModalProps> = ({
     setError(null);
   }, [messages.length]);
 
-  const quickActions = [
-    'Create 3 blue rectangles in a horizontal line',
-    'Make a simple flowchart with 4 steps',
-    'Draw 5 circles arranged in a pentagon',
-    'Create a mind map with a center node and 4 branches',
-    'Make a simple org chart with 3 levels',
-  ];
-
   if (!isOpen) return null;
+
+  const modeIndex = MODES.findIndex(m => m.id === mode);
+  const canSubmit = isLoading || (!input.trim() && mode !== 'summarize' && mode !== 'optimize');
 
   return (
     <div className="ai-modal-overlay" onClick={onClose}>
-      <div className="ai-modal" onClick={e => e.stopPropagation()}>
+      <div
+        className="ai-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="AI Assistant"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="ai-modal-header">
-          <h2>✨ AI Assistant</h2>
+          <div className="ai-brand-mark" aria-hidden="true">
+            <Sparkles />
+          </div>
+          <div className="ai-brand-text">
+            <h2 className="ai-modal-title">AI Assistant</h2>
+            <span className="ai-modal-subtitle">Generate &amp; refine your canvas</span>
+          </div>
           <div className="ai-modal-actions">
             {messages.length > 0 && (
               <button
                 onClick={handleClear}
-                className="ai-clear-btn"
+                className="ai-icon-btn"
                 title="Clear conversation"
                 aria-label="Clear conversation"
               >
-                🗑️
+                <TrashIcon />
               </button>
             )}
             <button
               onClick={onClose}
-              className="ai-close-btn"
+              className="ai-icon-btn ai-close-btn"
+              title="Close (Esc)"
               aria-label="Close AI Assistant"
             >
-              ✕
+              <CloseIcon />
             </button>
           </div>
         </div>
 
         {/* Mode Selector */}
-        <div className="ai-mode-selector" role="tablist">
-          {(['generate', 'chat', 'summarize', 'optimize'] as AIMode[]).map(m => (
+        <div className="ai-mode-selector" role="tablist" aria-label="AI mode">
+          <span
+            className="ai-mode-thumb"
+            style={{ transform: `translateX(calc(${modeIndex} * 100%))` }}
+            aria-hidden="true"
+          />
+          {MODES.map(({ id, label, Icon }) => (
             <button
-              key={m}
+              key={id}
               role="tab"
-              aria-selected={mode === m}
-              className={`ai-mode-btn ${mode === m ? 'active' : ''}`}
-              onClick={() => setMode(m)}
+              aria-selected={mode === id}
+              className={`ai-mode-btn ${mode === id ? 'active' : ''}`}
+              onClick={() => setMode(id)}
             >
-              {m === 'generate' && '✨ '}
-              {m === 'chat' && '💬 '}
-              {m === 'summarize' && '📝 '}
-              {m === 'optimize' && '⚡ '}
-              {m.charAt(0).toUpperCase() + m.slice(1)}
+              <span className="ai-mode-icon"><Icon /></span>
+              <span className="ai-mode-label">{label}</span>
             </button>
           ))}
         </div>
@@ -253,39 +418,40 @@ export const AIModal: React.FC<AIModalProps> = ({
         <div className="ai-messages" role="log" aria-live="polite">
           {messages.length === 0 && !isLoading && (
             <div className="ai-welcome">
-              <div className="ai-welcome-icon">🤖</div>
-              <h3>Welcome to AI Assistant</h3>
-              <p>
-                {mode === 'generate' && 'Describe what you want to create, and I\'ll add it to your canvas!'}
-                {mode === 'chat' && 'Ask me anything about your diagram or design ideas.'}
-                {mode === 'summarize' && 'I\'ll summarize your current canvas for you.'}
-                {mode === 'optimize' && 'I\'ll suggest improvements for your layout and design.'}
-              </p>
-              
+              <div className="ai-welcome-icon" aria-hidden="true">
+                <Sparkles />
+              </div>
+              <h3 className="ai-welcome-title">{WELCOME[mode].title}</h3>
+              <p className="ai-welcome-text">{WELCOME[mode].text}</p>
+
               {mode === 'generate' && (
                 <div className="ai-quick-actions">
-                  <p><strong>Try these examples:</strong></p>
-                  {quickActions.map((action, i) => (
-                    <button
-                      key={i}
-                      className="ai-quick-action-btn"
-                      onClick={() => handleQuickAction(action)}
-                    >
-                      {action}
-                    </button>
-                  ))}
+                  <span className="ai-quick-label">Suggestions</span>
+                  <div className="ai-quick-list">
+                    {QUICK_ACTIONS.map(({ Icon, title, prompt }, i) => (
+                      <button
+                        key={i}
+                        className="ai-quick-action-btn"
+                        onClick={() => handleQuickAction(prompt)}
+                      >
+                        <span className="ai-quick-icon"><Icon /></span>
+                        <span className="ai-quick-body">
+                          <span className="ai-quick-title">{title}</span>
+                          <span className="ai-quick-sub">{prompt}</span>
+                        </span>
+                        <span className="ai-quick-enter" aria-hidden="true">↵</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           )}
 
           {messages.map(msg => (
-            <div
-              key={msg.id}
-              className={`ai-message ai-message-${msg.role}`}
-            >
-              <div className="ai-message-avatar">
-                {msg.role === 'user' ? '👤' : '🤖'}
+            <div key={msg.id} className={`ai-message ai-message-${msg.role}`}>
+              <div className="ai-message-avatar" aria-hidden="true">
+                {msg.role === 'user' ? <UserIcon /> : <Sparkles />}
               </div>
               <div className="ai-message-content">{msg.content}</div>
             </div>
@@ -293,15 +459,17 @@ export const AIModal: React.FC<AIModalProps> = ({
 
           {isLoading && (
             <div className="ai-message ai-message-assistant">
-              <div className="ai-message-avatar">🤖</div>
+              <div className="ai-message-avatar" aria-hidden="true">
+                <Sparkles />
+              </div>
               <div className="ai-message-content">
-                <div className="ai-loading">
-                  <div className="ai-loading-dot"></div>
-                  <div className="ai-loading-dot"></div>
-                  <div className="ai-loading-dot"></div>
+                <div className="ai-loading" aria-hidden="true">
+                  <span className="ai-loading-dot" />
+                  <span className="ai-loading-dot" />
+                  <span className="ai-loading-dot" />
                 </div>
                 <div className="ai-loading-text">
-                  {mode === 'generate' ? 'Creating your diagram...' : 'Thinking...'}
+                  {mode === 'generate' ? 'Creating your diagram…' : 'Thinking…'}
                 </div>
               </div>
             </div>
@@ -309,13 +477,14 @@ export const AIModal: React.FC<AIModalProps> = ({
 
           {error && (
             <div className="ai-error" role="alert">
-              <strong>⚠️ Error:</strong> {error}
-              <button 
+              <span className="ai-error-icon" aria-hidden="true"><WarningIcon /></span>
+              <span className="ai-error-text">{error}</span>
+              <button
                 onClick={() => setError(null)}
                 className="ai-error-dismiss"
                 aria-label="Dismiss error"
               >
-                ✕
+                <CloseIcon />
               </button>
             </div>
           )}
@@ -325,41 +494,43 @@ export const AIModal: React.FC<AIModalProps> = ({
 
         {/* Input Form */}
         <form id="ai-form" className="ai-input-form" onSubmit={handleSubmit}>
-          <input
-            ref={inputRef}
-            type="text"
-            className="ai-input"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            disabled={isLoading}
-            placeholder={
-              mode === 'generate'
-                ? 'Describe what you want to create...'
-                : mode === 'summarize'
-                ? 'Press Enter to summarize your canvas...'
-                : mode === 'optimize'
-                ? 'Press Enter for layout suggestions...'
-                : 'Ask me anything...'
-            }
-            aria-label="AI prompt input"
-          />
+          <div className="ai-input-wrap">
+            <span className="ai-input-icon" aria-hidden="true"><Sparkles /></span>
+            <input
+              ref={inputRef}
+              type="text"
+              className="ai-input"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              disabled={isLoading}
+              placeholder={PLACEHOLDER[mode]}
+              aria-label="AI prompt input"
+            />
+          </div>
           <button
             type="submit"
             className="ai-submit-btn"
-            disabled={isLoading || (!input.trim() && mode !== 'summarize' && mode !== 'optimize')}
+            disabled={canSubmit}
             aria-label="Send message"
           >
-            {isLoading ? '⏳' : '🚀'}
+            {isLoading ? <Spinner /> : <ArrowUpIcon />}
           </button>
         </form>
 
         {/* Footer */}
         <div className="ai-footer">
-          <span>Canvas: {elements.length} element{elements.length !== 1 ? 's' : ''}</span>
+          <span className="ai-footer-chip">
+            <strong>{elements.length}</strong> element{elements.length !== 1 ? 's' : ''}
+          </span>
           {selectedElements.length > 0 && (
-            <span>• Selected: {selectedElements.length}</span>
+            <span className="ai-footer-chip">
+              <strong>{selectedElements.length}</strong> selected
+            </span>
           )}
-          <span>• Mode: {mode}</span>
+          <span className="ai-footer-spacer" />
+          <span className="ai-footer-hint">
+            <kbd>Esc</kbd> to close
+          </span>
         </div>
       </div>
     </div>

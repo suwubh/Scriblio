@@ -1,105 +1,122 @@
-/* src/styles/ai-command-palette.css */
+/* src/styles/ai-command-palette.css — floating AI launcher */
 
-/* Floating AI Button */
 .ai-floating-btn {
   position: fixed;
-  bottom: 2rem;
-  right: 2rem;
+  right: 1.5rem;
+  bottom: 1.5rem;
   z-index: 1500;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  background: var(--ai-accent);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--ai-accent) 35%, transparent);
-  color: white;
+  gap: 0.6rem;
+  padding: 0.6rem 0.95rem 0.6rem 0.62rem;
   border: none;
-  border-radius: 50px;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  border-radius: 15px;
+  overflow: hidden;
+  color: #fff;
   cursor: pointer;
-  font-size: 0.95rem;
+  font-family: inherit;
+  font-size: 0.86rem;
   font-weight: 600;
-  transition: all 0.3s ease;
-  animation: aiButtonPulse 2s ease-in-out infinite;
+  letter-spacing: -0.01em;
+  background: linear-gradient(142deg, #8b84ff, var(--accent, #646cff));
+  box-shadow:
+    0 10px 26px -8px rgba(100, 108, 255, 0.6),
+    0 2px 8px -2px rgba(10, 12, 30, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
 }
 
-@keyframes aiButtonPulse {
-  0%, 100% {
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-  }
-  50% {
-    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.6);
-  }
+/* light sheen sweep on hover */
+.ai-floating-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 65%
+  );
+  transform: translateX(-130%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
 }
 
 .ai-floating-btn:hover {
-  transform: translateY(-4px) scale(1.05);
-  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
-  animation: none;
+  transform: translateY(-3px);
+  box-shadow:
+    0 16px 34px -8px rgba(100, 108, 255, 0.7),
+    0 4px 12px -2px rgba(10, 12, 30, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
 }
 
-.ai-floating-btn:active {
-  transform: translateY(-2px) scale(1.02);
+.ai-floating-btn:hover::before { transform: translateX(130%); }
+
+.ai-floating-btn:active { transform: translateY(-1px) scale(0.98); }
+
+.ai-floating-btn:focus-visible {
+  outline: 2px solid var(--accent, #646cff);
+  outline-offset: 3px;
 }
 
 .ai-floating-icon {
-  font-size: 1.2rem;
-  animation: sparkle 1.5s ease-in-out infinite;
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-@keyframes sparkle {
-  0%, 100% {
-    transform: scale(1) rotate(0deg);
-  }
-  25% {
-    transform: scale(1.2) rotate(-10deg);
-  }
-  75% {
-    transform: scale(1.2) rotate(10deg);
-  }
-}
+.ai-floating-icon svg { width: 17px; height: 17px; }
 
 .ai-floating-text {
-  font-family: system-ui, -apple-system, sans-serif;
+  position: relative;
+  white-space: nowrap;
 }
 
 .ai-floating-shortcut {
-  padding: 0.2rem 0.5rem;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  font-family: 'Monaco', 'Courier New', monospace;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.14rem 0.42rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* Collapse to a circular icon button on small screens */
+@media (max-width: 560px) {
   .ai-floating-btn {
-    bottom: 1rem;
     right: 1rem;
-    padding: 0.6rem 1rem;
-  }
-
-  .ai-floating-text {
-    display: none;
-  }
-
-  .ai-floating-shortcut {
-    display: none;
-  }
-
-  .ai-floating-icon {
-    font-size: 1.5rem;
-  }
-}
-
-/* Make button more prominent on mobile */
-@media (max-width: 480px) {
-  .ai-floating-btn {
-    width: 56px;
-    height: 56px;
+    bottom: 1rem;
+    width: 52px;
+    height: 52px;
     padding: 0;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: 16px;
   }
+
+  .ai-floating-text,
+  .ai-floating-shortcut { display: none; }
+
+  .ai-floating-icon {
+    width: auto;
+    height: auto;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .ai-floating-icon svg { width: 23px; height: 23px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-floating-btn { transition: none; }
+  .ai-floating-btn::before { display: none; }
 }
