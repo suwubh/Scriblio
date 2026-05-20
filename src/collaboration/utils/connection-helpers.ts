@@ -1,34 +1,10 @@
+/** Stable per-browser-session id used to identify this client in a room. */
 export const generateUserId = (): string => {
-  return `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  return `user-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
 }
 
+/** Random pastel-ish colour for cursors and avatars. */
 export const generateUserColor = (): string => {
   const hue = Math.floor(Math.random() * 360)
   return `hsl(${hue}, 70%, 50%)`
-}
-
-export const isWebRTCSupported = (): boolean => {
-  return typeof RTCPeerConnection !== 'undefined'
-}
-
-export const isWebSocketSupported = (): boolean => {
-  return typeof WebSocket !== 'undefined'
-}
-
-export const getConnectionQuality = (rtt: number): 'excellent' | 'good' | 'poor' | 'bad' => {
-  if (rtt < 50) return 'excellent'
-  if (rtt < 150) return 'good'
-  if (rtt < 300) return 'poor'
-  return 'bad'
-}
-
-export const debounce = <T extends (...args: unknown[]) => void>(
-  func: T,
-  wait: number
-): T => {
-  let timeout: NodeJS.Timeout
-  return ((...args: unknown[]) => {
-    clearTimeout(timeout)
-    timeout = setTimeout(() => func(...args), wait)
-  }) as T
 }

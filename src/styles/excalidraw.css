@@ -536,3 +536,19 @@ html, body, #root {
   outline: 2px solid var(--accent, #646cff);
   outline-offset: 2px;
 }
+/* Inline text editor (text tool) */
+.canvas-text-input {
+  z-index: 1100;
+  min-width: 120px;
+  min-height: 1.4em;
+  margin: 0;
+  padding: 2px 4px;
+  border: 1px dashed #6965db;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  font-family: 'Virgil', 'Segoe UI', sans-serif;
+  line-height: 1.2;
+  resize: none;
+  overflow: hidden;
+  outline: none;
+}

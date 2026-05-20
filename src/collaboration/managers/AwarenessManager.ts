@@ -1,6 +1,10 @@
 import { Awareness } from 'y-protocols/awareness'
 import { UserPresence } from '../types/presence.types'
 
+/**
+ * Wraps the Yjs awareness protocol to publish this user's live presence
+ * (name, colour, cursor) and surface the presence of everyone else in the room.
+ */
 export class AwarenessManager {
   private awareness: Awareness
   private localUserId: string
@@ -9,11 +13,6 @@ export class AwarenessManager {
   constructor(awareness: Awareness, localUserId: string) {
     this.awareness = awareness
     this.localUserId = localUserId
-    this.setupAwarenessListeners()
-  }
-
-  private setupAwarenessListeners(): void {
-    // Use the bound arrow reference so destroy() can actually remove it.
     this.awareness.on('change', this.handleAwarenessChange)
   }
 
@@ -45,31 +44,6 @@ export class AwarenessManager {
 
   updateCursor(x: number, y: number): void {
     this.setLocalPresence({ cursor: { x, y } })
-  }
-
-  updateSelection(elementIds: string[]): void {
-    this.setLocalPresence({ selection: elementIds })
-  }
-
-  updateViewport(x: number, y: number, zoom: number): void {
-    this.setLocalPresence({ viewport: { x, y, zoom } })
-  }
-
-  setUserActive(active: boolean): void {
-    this.setLocalPresence({ isActive: active })
-  }
-
-  getRemoteUsers(): Map<string, UserPresence> {
-    const states = this.awareness.getStates()
-    const users = new Map<string, UserPresence>()
-
-    states.forEach((state, clientId) => {
-      if (state.user && clientId !== this.awareness.clientID) {
-        users.set(clientId.toString(), state.user)
-      }
-    })
-
-    return users
   }
 
   onChange(callback: (users: Map<string, UserPresence>) => void): void {

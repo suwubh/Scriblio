@@ -7,8 +7,7 @@
   },
   "dependencies": {
     "ws": "^8.14.2",
-    "redis": "^4.6.10",
-    "cors": "^2.8.5"
+    "redis": "^4.6.10"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

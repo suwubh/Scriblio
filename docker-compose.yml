@@ -39,6 +39,8 @@ services:
       PORT: "3001"
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
+      # Origin allowed to call the AI proxy. Override for a non-localhost deploy.
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-http://localhost:5173}
 
   frontend:
     build:

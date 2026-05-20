@@ -1,115 +1,110 @@
 const WebSocket = require('ws')
 const Redis = require('redis')
 
-// Create Redis clients
-const redisClient = Redis.createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379'
-})
-
-const redisSubscriber = redisClient.duplicate()
-const redisPublisher = redisClient.duplicate()
-
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379'
 const PORT = Number(process.env.PORT) || 8080
 
-// WebSocket server
-const wss = new WebSocket.Server({
-  port: PORT,
-  cors: {
-    origin: '*'
-  }
-})
+// One shared publisher for the whole process. Subscribers, however, are created
+// per WebSocket connection (see below) — node-redis routes a channel's messages
+// to whichever client subscribed it, and unsubscribing is per-client, so a
+// shared subscriber would make one user's disconnect silence everyone else in
+// the same room.
+const redisPublisher = Redis.createClient({ url: REDIS_URL })
 
+const wss = new WebSocket.Server({ port: PORT })
 console.log(`Redis WebSocket bridge running on ws://localhost:${PORT}`)
 
-// Connect to Redis
-async function connectRedis() {
-  await redisClient.connect()
-  await redisSubscriber.connect()
-  await redisPublisher.connect()
-  console.log('Connected to Redis')
-}
+redisPublisher
+  .connect()
+  .then(() => console.log('Redis publisher connected'))
+  .catch((err) => console.error('Redis publisher failed to connect:', err))
 
-connectRedis().catch(console.error)
+wss.on('connection', async (ws) => {
+  const connectionId = Math.random().toString(36).slice(2, 11)
 
-// Store active connections
-const connections = new Map()
+  // Dedicated subscriber connection for this client only.
+  const subscriber = redisPublisher.duplicate()
+  const subscriptions = new Set()
+  let alive = true
 
-wss.on('connection', (ws) => {
-  const connectionId = Math.random().toString(36).substr(2, 9)
-  connections.set(connectionId, { ws, subscriptions: new Set() })
-  
+  try {
+    await subscriber.connect()
+  } catch (err) {
+    console.error(`Subscriber failed for ${connectionId}:`, err)
+    ws.close()
+    return
+  }
+
   console.log(`Client connected: ${connectionId}`)
 
   ws.on('message', async (data) => {
+    let message
     try {
-      const message = JSON.parse(data.toString())
-      const connection = connections.get(connectionId)
+      message = JSON.parse(data.toString())
+    } catch {
+      return // ignore non-JSON frames
+    }
 
+    try {
       switch (message.type) {
         case 'subscribe':
-          // Subscribe to Redis channel
-          if (!connection.subscriptions.has(message.channel)) {
-            connection.subscriptions.add(message.channel)
-            
-            await redisSubscriber.subscribe(message.channel, (redisMessage) => {
+          if (message.channel && !subscriptions.has(message.channel)) {
+            subscriptions.add(message.channel)
+            await subscriber.subscribe(message.channel, (raw) => {
               if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                  channel: message.channel,
-                  data: JSON.parse(redisMessage)
-                }))
+                ws.send(JSON.stringify({ channel: message.channel, data: JSON.parse(raw) }))
               }
             })
-            
-            console.log(`Subscribed ${connectionId} to ${message.channel}`)
           }
           break
 
         case 'publish':
-          // Publish to Redis channel
-          await redisPublisher.publish(
-            message.channel, 
-            JSON.stringify(message.data)
-          )
-          console.log(`Published to ${message.channel}`)
+          if (message.channel) {
+            await redisPublisher.publish(message.channel, JSON.stringify(message.data))
+          }
           break
 
         case 'unsubscribe':
-          // Unsubscribe from Redis channel
-          if (connection.subscriptions.has(message.channel)) {
-            await redisSubscriber.unsubscribe(message.channel)
-            connection.subscriptions.delete(message.channel)
-            console.log(`Unsubscribed ${connectionId} from ${message.channel}`)
+          if (message.channel && subscriptions.has(message.channel)) {
+            await subscriber.unsubscribe(message.channel)
+            subscriptions.delete(message.channel)
+          }
+          break
+
+        case 'ping':
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'pong' }))
           }
           break
       }
-    } catch (error) {
-      console.error('Message handling error:', error)
+    } catch (err) {
+      console.error(`Message handling error (${connectionId}):`, err)
     }
   })
 
   ws.on('close', async () => {
-    const connection = connections.get(connectionId)
-    if (connection) {
-      // Unsubscribe from all channels
-      for (const channel of connection.subscriptions) {
-        await redisSubscriber.unsubscribe(channel)
-      }
-      connections.delete(connectionId)
+    if (!alive) return
+    alive = false
+    try {
+      await subscriber.quit()
+    } catch {
+      // ignore — connection is going away anyway
     }
     console.log(`Client disconnected: ${connectionId}`)
   })
 
-  ws.on('error', (error) => {
-    console.error(`WebSocket error for ${connectionId}:`, error)
+  ws.on('error', (err) => {
+    console.error(`WebSocket error for ${connectionId}:`, err)
   })
 })
 
-// Graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('Shutting down...')
+  console.log('Shutting down Redis bridge...')
   wss.close()
-  await redisClient.quit()
-  await redisSubscriber.quit()
-  await redisPublisher.quit()
+  try {
+    await redisPublisher.quit()
+  } catch {
+    // ignore
+  }
   process.exit(0)
 })

@@ -7,9 +7,6 @@ interface PresenceContextType {
   presenceState: PresenceState
   awarenessManager: AwarenessManager | null
   updateCursor: (x: number, y: number) => void
-  updateSelection: (elementIds: string[]) => void
-  updateViewport: (x: number, y: number, zoom: number) => void
-  setUserActive: (active: boolean) => void
 }
 
 const PresenceContext = createContext<PresenceContextType | null>(null)
@@ -70,25 +67,10 @@ export const PresenceProvider: React.FC<PresenceProviderProps> = ({
     awarenessManager?.updateCursor(x, y)
   }
 
-  const updateSelection = (elementIds: string[]) => {
-    awarenessManager?.updateSelection(elementIds)
-  }
-
-  const updateViewport = (x: number, y: number, zoom: number) => {
-    awarenessManager?.updateViewport(x, y, zoom)
-  }
-
-  const setUserActive = (active: boolean) => {
-    awarenessManager?.setUserActive(active)
-  }
-
   const contextValue: PresenceContextType = {
     presenceState,
     awarenessManager,
     updateCursor,
-    updateSelection,
-    updateViewport,
-    setUserActive,
   }
 
   return (

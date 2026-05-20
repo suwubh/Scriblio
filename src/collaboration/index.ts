@@ -5,12 +5,11 @@ export { PresenceProvider, usePresenceContext } from './providers/PresenceProvid
 // Hooks
 export { useCollaboration } from './hooks/useCollaboration'
 export { usePresence } from './hooks/usePresence'
-export { useSharedCanvas } from './hooks/useSharedCanvas'
 export { useCanvasSync } from './hooks/useCanvasSync'
+export { useYjsHistory } from './hooks/useYjsHistory'
 
 // Managers
-export { YjsDocumentManager } from './managers/YjsDocumentManager'
-export { WebRTCManager } from './managers/WebRTCManager'
+export { YjsDocumentManager, LOCAL_ORIGIN } from './managers/YjsDocumentManager'
 export { AwarenessManager } from './managers/AwarenessManager'
 
 // Types
@@ -18,5 +17,4 @@ export * from './types/collaboration.types'
 export * from './types/presence.types'
 
 // Utils
-export * from './utils/crdt-helpers'
-export * from './utils/connection-helpers'
+export { generateUserId, generateUserColor } from './utils/connection-helpers'

@@ -1,6 +1,6 @@
 import { CanvasRenderer } from '../engine/renderer';
 import { EventHandler } from '../engine/eventHandler';
-import { AppState, ExcalidrawElement } from '../types/excalidraw';
+import { AppState, ExcalidrawElement, Point } from '../types/excalidraw';
 
 export class CanvasApp {
   private canvas: HTMLCanvasElement;
@@ -39,6 +39,17 @@ export class CanvasApp {
 
   public setOnAppStateMutated(cb: (appState: AppState) => void) {
     this.onAppStateMutated = cb;
+  }
+
+  /** Wires the inline text editor: called when the text tool is used. */
+  public setOnRequestText(cb: (canvasPoint: Point, screenPoint: Point) => void) {
+    this.eventHandler.setOnRequestText(cb);
+  }
+
+  /** Commits text typed in the inline editor as a new element. */
+  public commitText(point: Point, text: string) {
+    if (this.isDestroyed) return;
+    this.eventHandler.commitText(point, text);
   }
 
   private setupCanvas() {

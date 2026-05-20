@@ -14,7 +14,6 @@ export const useCollaboration = () => {
     documentManager: context.documentManager,
     webrtcProvider: context.webrtcProvider,
     websocketProvider: context.websocketProvider,
-    webrtcManager: context.webrtcManager,
     connectionStatus: context.connectionStatus,
     isConnected,
     config: context.config,

@@ -87,19 +87,29 @@ npm install
 
 ### 2. Environment setup
 
+Copy the example files and fill them in:
+
 ```bash
-# Frontend (.env.local in project root)
+cp .env.example .env.local        # frontend (Vite) config
+cp server/.env.example server/.env # AI proxy keys
+```
+
+The frontend `.env.local` points at the local services:
+
+```bash
 VITE_SIGNALING_URLS=ws://localhost:4000
 VITE_REDIS_WS_URL=ws://localhost:8080
 VITE_WEBSOCKET_URL=wss://demos.yjs.dev/ws
 VITE_PROXY_URL=http://localhost:3001/api/chat
 ```
 
+The AI proxy `server/.env` holds the API keys and the allowed frontend origin:
+
 ```bash
-# AI proxy (server/.env)
 OPENAI_API_KEY=your_openai_key_here
 GROQ_API_KEY=your_groq_key_here   # optional fallback
 PORT=3001
+ALLOWED_ORIGIN=http://localhost:5173
 ```
 
 > The app also works without Redis and without an AI key — collaboration falls back to the public Yjs WebSocket server, and the AI panel will show a connection error.
@@ -226,7 +236,6 @@ Deploy `dist/` to any static host (Vercel, Netlify, S3). The signaling server, R
 
 - [ ] Persistent room storage (PostgreSQL / MongoDB)
 - [ ] User accounts and room permissions
-- [ ] Inline text editor (replace browser `prompt()`)
 - [ ] Mobile touch support improvements
 - [ ] Export to PNG and PDF
 

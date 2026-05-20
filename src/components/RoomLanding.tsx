@@ -1,19 +1,9 @@
 import React, { useState } from 'react'
+import { generateRoomId } from '../utils/room'
 
 interface RoomLandingProps {
   defaultName: string
   onEnter: (roomId: string, name: string) => void
-}
-
-/** Readable code alphabet — no easily-confused characters (0/O, 1/I/L). */
-const ROOM_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
-
-function generateRoomId(): string {
-  let id = ''
-  for (let i = 0; i < 6; i++) {
-    id += ROOM_ALPHABET[Math.floor(Math.random() * ROOM_ALPHABET.length)]
-  }
-  return id
 }
 
 const BRAND: { ch: string; color: string }[] = [

@@ -1,6 +1,6 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { ExcalidrawElement, AppState, ToolType } from '../types/excalidraw';
-import { useUndoRedo } from './useUndoRedo';
+import { CanvasApp } from '../components/Canvas';
 
 const DEFAULT_APP_STATE: AppState = {
   viewTransform: { x: 0, y: 0, zoom: 1 },
@@ -35,176 +35,79 @@ const DEFAULT_APP_STATE: AppState = {
   height: window.innerHeight,
 };
 
+/**
+ * Holds the canvas element list and app state for the React tree.
+ *
+ * Undo/redo is NOT handled here — it lives in the shared Yjs document
+ * (`useYjsHistory`), so it stays correct across collaborators.
+ */
 export function useExcalidrawState() {
   const [elements, setElements] = useState<ExcalidrawElement[]>([]);
   const [appState, setAppState] = useState<AppState>(DEFAULT_APP_STATE);
 
-  const { saveState, undo, redo, clear, initialize, canUndo, canRedo } = useUndoRedo();
+  const canvasAppRef = useRef<CanvasApp | null>(null);
 
-  const canvasAppRef = useRef<any>(null);
-  const undoRedoLock = useRef(false);
-  const isInitialized = useRef(false);
-  const appStateRef = useRef(appState);
-
-  useEffect(() => {
-    if (!isInitialized.current) {
-      initialize(elements, appState);
-      isInitialized.current = true;
-    }
-  }, []); // intentionally run once on mount
-
-  useEffect(() => {
-    appStateRef.current = appState;
-  }, [appState]);
-
-  const setCanvasAppRef = useCallback((app: any) => {
+  const setCanvasAppRef = useCallback((app: CanvasApp) => {
     canvasAppRef.current = app;
   }, []);
 
   const updateAppState = useCallback((updates: Partial<AppState>) => {
     setAppState(prev => {
       const next = { ...prev, ...updates };
-      if (canvasAppRef.current && !undoRedoLock.current) {
-        canvasAppRef.current.updateAppState(next);
-      }
+      canvasAppRef.current?.updateAppState(next);
       return next;
     });
   }, []);
 
   const setElementsFromCanvas = useCallback((newElements: ExcalidrawElement[]) => {
     setElements(newElements);
-    if (!undoRedoLock.current) {
-      saveState(newElements, appState);
-    }
-  }, [saveState, appState]);
+  }, []);
 
-  // Applies elements received from a remote collaborator. Updates React state
-  // and the canvas without re-broadcasting, and rebases the undo history onto
-  // the merged result so a later local undo can't delete other people's work.
+  // Applies elements received from a remote collaborator (or an undo/redo
+  // replayed through the shared document). Updates React state and the canvas
+  // without re-broadcasting.
   const applyRemoteElements = useCallback((remoteElements: ExcalidrawElement[]) => {
     setElements(remoteElements);
-    if (canvasAppRef.current) {
-      canvasAppRef.current.setElements(remoteElements);
-    }
-    clear(remoteElements, appStateRef.current);
-  }, [clear]);
+    canvasAppRef.current?.setElements(remoteElements);
+  }, []);
 
   const addElement = useCallback((element: ExcalidrawElement) => {
-    if (undoRedoLock.current) return;
-
     setElements(prev => {
       const next = [...prev, element];
-      saveState(next, appState);
-      if (canvasAppRef.current) {
-        canvasAppRef.current.setElements(next);
-      }
+      canvasAppRef.current?.setElements(next);
       return next;
     });
-  }, [saveState, appState]);
+  }, []);
 
   const updateElement = useCallback((id: string, updates: Partial<ExcalidrawElement>) => {
-    if (undoRedoLock.current) return;
-
     setElements(prev => {
       const next = prev.map(el => el.id === id ? { ...el, ...updates } : el);
-      saveState(next, appState);
-      if (canvasAppRef.current) {
-        canvasAppRef.current.setElements(next);
-      }
+      canvasAppRef.current?.setElements(next);
       return next;
     });
-  }, [saveState, appState]);
+  }, []);
 
   const deleteElements = useCallback((ids: string[]) => {
-    if (undoRedoLock.current) return;
-
     setElements(prev => {
       const next = prev.filter(el => !ids.includes(el.id));
-      saveState(next, appState);
-      if (canvasAppRef.current) {
-        canvasAppRef.current.setElements(next);
-      }
+      canvasAppRef.current?.setElements(next);
       return next;
     });
-  }, [saveState, appState]);
+  }, []);
 
   const clearCanvas = useCallback(() => {
-    const resetState: AppState = {
-      ...DEFAULT_APP_STATE,
-      width: appState.width,
-      height: appState.height,
-    };
-
     setElements([]);
-    setAppState(resetState);
-    clear([], resetState);
-
-    if (canvasAppRef.current) {
-      canvasAppRef.current.setElements([]);
-      canvasAppRef.current.updateAppState(resetState);
-    }
-  }, [appState.width, appState.height, clear]);
-
-  const performUndo = useCallback(() => {
-    if (!canUndo || undoRedoLock.current) return;
-
-    undoRedoLock.current = true;
-    const prevState = undo();
-
-    if (prevState) {
-      setElements(prevState.elements);
-      setAppState(prevState.appState);
-
-      requestAnimationFrame(() => {
-        if (canvasAppRef.current) {
-          canvasAppRef.current.setElements(prevState.elements);
-          canvasAppRef.current.updateAppState(prevState.appState);
-        }
-        setTimeout(() => { undoRedoLock.current = false; }, 50);
-      });
-    } else {
-      undoRedoLock.current = false;
-    }
-  }, [undo, canUndo]);
-
-  const performRedo = useCallback(() => {
-    if (!canRedo || undoRedoLock.current) return;
-
-    undoRedoLock.current = true;
-    const nextState = redo();
-
-    if (nextState) {
-      setElements(nextState.elements);
-      setAppState(nextState.appState);
-
-      requestAnimationFrame(() => {
-        if (canvasAppRef.current) {
-          canvasAppRef.current.setElements(nextState.elements);
-          canvasAppRef.current.updateAppState(nextState.appState);
-        }
-        setTimeout(() => { undoRedoLock.current = false; }, 50);
-      });
-    } else {
-      undoRedoLock.current = false;
-    }
-  }, [redo, canRedo]);
-
-  useEffect(() => {
-    const handleKeyboard = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return;
-
-      if (e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        performUndo();
-      } else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) {
-        e.preventDefault();
-        performRedo();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyboard);
-    return () => document.removeEventListener('keydown', handleKeyboard);
-  }, [performUndo, performRedo]);
+    setAppState(prev => {
+      const resetState: AppState = {
+        ...DEFAULT_APP_STATE,
+        width: prev.width,
+        height: prev.height,
+      };
+      canvasAppRef.current?.updateAppState(resetState);
+      return resetState;
+    });
+    canvasAppRef.current?.setElements([]);
+  }, []);
 
   return {
     elements,
@@ -217,9 +120,5 @@ export function useExcalidrawState() {
     deleteElements,
     clearCanvas,
     setCanvasAppRef,
-    undo: performUndo,
-    redo: performRedo,
-    canUndo,
-    canRedo,
   };
 }

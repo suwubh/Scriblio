@@ -1,70 +1,31 @@
 import * as Y from 'yjs'
-import { DrawingStroke, CanvasElement } from '../types/collaboration.types'
+import { ExcalidrawElement } from '../../types/excalidraw'
 
+/** Transaction origin tag for writes made by the local user. */
+export const LOCAL_ORIGIN = 'scriblio-local'
+
+/**
+ * Owns the shared Yjs document for a room.
+ *
+ * The canvas elements live in a single `Y.Map` keyed by element id. A
+ * `Y.UndoManager` is scoped to the local origin tag, so undo/redo only ever
+ * reverts *this* user's edits and never touches a collaborator's work.
+ */
 export class YjsDocumentManager {
   public doc: Y.Doc
-  public canvasMap: Y.Map<any>
-  public strokesArray: Y.Array<DrawingStroke>
-  public elementsMap: Y.Map<CanvasElement>
+  public elementsMap: Y.Map<ExcalidrawElement>
+  public undoManager: Y.UndoManager
 
   constructor(roomId: string) {
     this.doc = new Y.Doc()
-    this.canvasMap = this.doc.getMap(`canvas-${roomId}`)
-    this.strokesArray = this.doc.getArray(`strokes-${roomId}`)
     this.elementsMap = this.doc.getMap(`elements-${roomId}`)
-  }
-
-  addStroke(stroke: DrawingStroke): void {
-    this.strokesArray.push([stroke])
-  }
-
-  addElement(element: CanvasElement): void {
-    this.elementsMap.set(element.id, element)
-  }
-
-  updateElement(elementId: string, updates: Partial<CanvasElement>): void {
-    const element = this.elementsMap.get(elementId)
-    if (element) {
-      this.elementsMap.set(elementId, { ...element, ...updates })
-    }
-  }
-
-  removeElement(elementId: string): void {
-    this.elementsMap.delete(elementId)
-  }
-
-  getStrokes(): DrawingStroke[] {
-    return this.strokesArray.toArray()
-  }
-
-  getElements(): CanvasElement[] {
-    return Array.from(this.elementsMap.values())
-  }
-
-  setCanvasProperty(key: string, value: any): void {
-    this.canvasMap.set(key, value)
-  }
-
-  getCanvasProperty(key: string): any {
-    return this.canvasMap.get(key)
-  }
-
-  onStrokesChange(callback: () => void): () => void {
-    this.strokesArray.observe(callback)
-    return () => this.strokesArray.unobserve(callback)
-  }
-
-  onElementsChange(callback: () => void): () => void {
-    this.elementsMap.observe(callback)
-    return () => this.elementsMap.unobserve(callback)
-  }
-
-  onCanvasChange(callback: () => void): () => void {
-    this.canvasMap.observe(callback)
-    return () => this.canvasMap.unobserve(callback)
+    this.undoManager = new Y.UndoManager(this.elementsMap, {
+      trackedOrigins: new Set([LOCAL_ORIGIN]),
+    })
   }
 
   destroy(): void {
+    this.undoManager.destroy()
     this.doc.destroy()
   }
 }

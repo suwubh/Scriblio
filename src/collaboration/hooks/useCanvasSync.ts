@@ -1,28 +1,26 @@
 import { useEffect, useRef } from 'react'
 import * as Y from 'yjs'
 import { ExcalidrawElement } from '../../types/excalidraw'
-import { YjsDocumentManager } from '../managers/YjsDocumentManager'
-
-/** Transaction origin tag for writes made by the local user. */
-const LOCAL_ORIGIN = 'scriblio-local'
+import { YjsDocumentManager, LOCAL_ORIGIN } from '../managers/YjsDocumentManager'
 
 /**
  * Bridges local canvas element state with the shared Yjs document so a drawing
  * made by one collaborator shows up on every other peer in the same room.
  *
- * Local edits (draw / AI / panel / delete / clear / undo-redo) all flow through
- * React `elements` state — this hook diffs that state and writes the changes
- * into the shared `Y.Map`. Remote edits arrive through the map observer and are
- * applied back into local state, which re-renders the canvas.
+ * Local edits (draw / AI / panel / delete / clear) all flow through React
+ * `elements` state — this hook diffs that state and writes the changes into the
+ * shared `Y.Map`. Remote edits (and undo/redo replayed through the document)
+ * arrive through the map observer and are applied back into local state.
  *
- * Two invariants keep this safe:
+ * Invariants that keep this safe:
  *  - Deletes are derived from the *previous local elements*, never from the
- *    document. So if the document already holds content this client has not
- *    rendered yet (just joined a room, or React StrictMode's double mount),
- *    the outbound diff can never wipe it.
+ *    document, so content this client has not rendered yet can't be wiped.
  *  - Writes are tagged with a local origin and upserts are skipped when the
  *    value already matches the document, so re-emitting state we just received
  *    produces no echo.
+ *  - When a remote update arrives, any local element created but not yet
+ *    flushed to the document is merged back in, so a concurrent remote write
+ *    can't drop an in-flight local shape.
  */
 export function useCanvasSync(
   documentManager: YjsDocumentManager,
@@ -33,20 +31,19 @@ export function useCanvasSync(
   const docSnapshot = useRef<Map<string, string>>(new Map())
   // id -> JSON of the last local `elements` array this hook processed.
   const prevElements = useRef<Map<string, string>>(new Map())
+  // Always-current local elements, readable from inside the observer closure.
+  const elementsRef = useRef<ExcalidrawElement[]>(elements)
+  elementsRef.current = elements
 
   // -------------------------------- remote -> local --------------------------------
   useEffect(() => {
-    const map = documentManager.elementsMap as unknown as Y.Map<ExcalidrawElement>
+    const map = documentManager.elementsMap
 
     const readAll = (): ExcalidrawElement[] => {
       const out: ExcalidrawElement[] = []
       map.forEach((value) => {
-        if (
-          value &&
-          typeof value === 'object' &&
-          typeof (value as ExcalidrawElement).id === 'string'
-        ) {
-          out.push(value as ExcalidrawElement)
+        if (value && typeof value === 'object' && typeof value.id === 'string') {
+          out.push(value)
         }
       })
       return out
@@ -64,9 +61,20 @@ export function useCanvasSync(
     const observer = (_event: Y.YMapEvent<ExcalidrawElement>, transaction: Y.Transaction) => {
       // Ignore the echo of our own writes.
       if (transaction.origin === LOCAL_ORIGIN) return
+
       const all = readAll()
+      const inDocNow = new Set(all.map((el) => el.id))
+      // The snapshot from *before* this event. An element that was never in it
+      // is a brand-new local creation not yet flushed — keep it so a remote
+      // update can't drop an in-flight shape. An element removed by undo or a
+      // remote delete WAS in this snapshot, so it is correctly let go.
+      const inDocBefore = docSnapshot.current
+      const unflushed = elementsRef.current.filter(
+        (el) => !inDocNow.has(el.id) && !inDocBefore.has(el.id),
+      )
+
       docSnapshot.current = new Map(all.map((el) => [el.id, JSON.stringify(el)]))
-      applyRemoteElements(all)
+      applyRemoteElements([...all, ...unflushed])
     }
 
     map.observe(observer)
@@ -75,7 +83,7 @@ export function useCanvasSync(
 
   // -------------------------------- local -> remote --------------------------------
   useEffect(() => {
-    const map = documentManager.elementsMap as unknown as Y.Map<ExcalidrawElement>
+    const map = documentManager.elementsMap
 
     const current = new Map<string, string>()
     for (const el of elements) {

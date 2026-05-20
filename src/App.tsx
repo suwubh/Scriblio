@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { ExcalidrawCanvas, ExcalidrawCanvasRef } from './components/ExcalidrawCanvas'
 import { Toolbar } from './components/Toolbar'
 import { PropertiesPanel } from './components/PropertiesPanel'
@@ -9,9 +9,11 @@ import {
   PresenceProvider,
   useCollaboration,
   useCanvasSync,
+  useYjsHistory,
   generateUserId,
   generateUserColor,
 } from './collaboration'
+import { normalizeRoomId } from './utils/room'
 import { RoomLanding } from './components/RoomLanding'
 import { RoomBar } from './components/RoomBar'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -27,13 +29,6 @@ const STORAGE_NAME_KEY = 'scriblio:user-name'
 // Stable per-browser-session identity. The display name is chosen by the user.
 const userId = generateUserId()
 const userColor = generateUserColor()
-
-/** Cleans a raw room id (handles pasted URLs, casing, stray characters). */
-function normalizeRoomId(raw: string): string {
-  let value = raw.trim()
-  if (value.includes('#')) value = value.split('#').pop() ?? ''
-  return value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '')
-}
 
 function fallbackName(): string {
   return `User ${userId.slice(-4)}`
@@ -53,10 +48,6 @@ function AppContent({ roomId, onLeaveRoom }: AppContentProps) {
     addElement,
     updateElement,
     deleteElements,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
     setCanvasAppRef,
     setElementsFromCanvas,
     applyRemoteElements,
@@ -65,6 +56,28 @@ function AppContent({ roomId, onLeaveRoom }: AppContentProps) {
   // Bridge the local canvas with the shared Yjs document for this room.
   const { documentManager } = useCollaboration()
   useCanvasSync(documentManager, elements, applyRemoteElements)
+
+  // Undo/redo is backed by the shared document so it stays correct across
+  // collaborators — it only ever reverts this user's own edits.
+  const { undo, redo, canUndo, canRedo } = useYjsHistory(documentManager)
+
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      // Let inputs keep their native undo (e.g. the inline text editor).
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        undo()
+      } else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) {
+        e.preventDefault()
+        redo()
+      }
+    }
+    document.addEventListener('keydown', handleKeyboard)
+    return () => document.removeEventListener('keydown', handleKeyboard)
+  }, [undo, redo])
 
   const canvasRef = useRef<ExcalidrawCanvasRef>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)

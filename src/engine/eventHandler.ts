@@ -9,7 +9,7 @@ export class EventHandler {
   private isDragging = false;
   private dragOffsets: Map<string, Point> = new Map();
   private selectionRect: { start: Point; current: Point } | null = null;
-  private onElementsCommitted?: (elements: ExcalidrawElement[]) => void;
+  private onRequestText?: (canvasPoint: Point, screenPoint: Point) => void;
 
   private boundHandlers = {
     pointerdown: this.handlePointerDown.bind(this),
@@ -24,8 +24,9 @@ export class EventHandler {
     this.setupEventListeners();
   }
 
-  public setOnElementsCommitted(cb: (elements: ExcalidrawElement[]) => void) {
-    this.onElementsCommitted = cb;
+  /** Lets the host show an inline text editor instead of a blocking prompt. */
+  public setOnRequestText(cb: (canvasPoint: Point, screenPoint: Point) => void) {
+    this.onRequestText = cb;
   }
 
   public updateAppState(newAppState: AppState) {
@@ -58,16 +59,9 @@ export class EventHandler {
     this.canvas.removeEventListener('wheel', this.boundHandlers.wheel);
     
     this.onElementsChanged = undefined;
-    this.onElementsCommitted = undefined;
+    this.onRequestText = undefined;
     this.elements = [];
     this.dragOffsets.clear();
-  }
-
-  private commitNow() {
-    if (this.onElementsCommitted) {
-      const deep = JSON.parse(JSON.stringify(this.elements)) as ExcalidrawElement[];
-      this.onElementsCommitted(deep);
-    }
   }
 
   private notifyElementsChanged() {
@@ -79,6 +73,14 @@ export class EventHandler {
   private handlePointerDown(event: PointerEvent) {
     const point = this.getCanvasPoint(event);
     this.isDrawing = true;
+
+    // Capture the pointer so a fast drag that leaves the canvas still delivers
+    // pointermove/pointerup here — otherwise the tool gets stuck mid-draw.
+    try {
+      this.canvas.setPointerCapture(event.pointerId);
+    } catch {
+      // ignore — not all pointer types support capture
+    }
 
     switch (this.appState.activeTool) {
       case 'rectangle':
@@ -97,7 +99,7 @@ export class EventHandler {
         this.handleSelectionStart(point, event);
         break;
       case 'text':
-        this.startCreatingText(point);
+        this.startCreatingText(point, event);
         break;
       case 'image':
         this.startCreatingImage(point);
@@ -134,8 +136,14 @@ export class EventHandler {
     }
   }
 
-  private handlePointerUp() {
+  private handlePointerUp(event: PointerEvent) {
     this.isDrawing = false;
+
+    try {
+      this.canvas.releasePointerCapture(event.pointerId);
+    } catch {
+      // ignore — pointer may already be released
+    }
 
     if (this.appState.activeTool === 'selection') {
       this.handleSelectionEnd();
@@ -221,7 +229,6 @@ export class EventHandler {
 
   private finalizeDragging() {
     this.notifyElementsChanged();
-    this.commitNow();
   }
 
   private updateRectangleSelection() {
@@ -252,7 +259,7 @@ export class EventHandler {
   private startCreatingElement(type: string, point: Point) {
     const element: ExcalidrawElement = {
       id: this.generateId(),
-      type: type as any,
+      type: type as ExcalidrawElement['type'],
       x: point.x,
       y: point.y,
       width: 0,
@@ -329,17 +336,34 @@ export class EventHandler {
     this.appState.editingElement = element;
   }
 
-  private startCreatingText(point: Point) {
+  private startCreatingText(point: Point, event: PointerEvent) {
+    // Prefer the host's inline editor; fall back to prompt() if none is wired.
+    if (this.onRequestText) {
+      const rect = this.canvas.getBoundingClientRect();
+      this.onRequestText(point, {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      });
+      return;
+    }
+
     const text = prompt('Enter text:');
+    if (text) this.commitText(point, text);
+  }
+
+  /** Creates a finished text element. Called by the inline editor on commit. */
+  public commitText(point: Point, rawText: string) {
+    const text = rawText.trim();
     if (!text) return;
 
+    const fontSize = this.appState.currentItemFontSize;
     const element: ExcalidrawElement = {
       id: this.generateId(),
       type: 'text',
       x: point.x,
       y: point.y,
-      width: text.length * 12,
-      height: 20,
+      width: text.length * fontSize * 0.6,
+      height: fontSize * 1.2,
       angle: 0,
       strokeColor: this.appState.currentItemStrokeColor,
       backgroundColor: 'transparent',
@@ -353,15 +377,14 @@ export class EventHandler {
       isDeleted: false,
       groupIds: [],
       updated: Date.now(),
-      text: text,
-      fontSize: this.appState.currentItemFontSize,
+      text,
+      fontSize,
       fontFamily: this.appState.currentItemFontFamily,
-      textAlign: this.appState.currentItemTextAlign
+      textAlign: this.appState.currentItemTextAlign,
     };
 
     this.elements.push(element);
     this.notifyElementsChanged();
-    this.commitNow();
   }
 
   private startCreatingImage(point: Point) {
@@ -370,51 +393,66 @@ export class EventHandler {
     input.accept = 'image/*';
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => {
-            let width = img.width;
-            let height = img.height;
-            const maxSize = 300;
-            if (width > maxSize || height > maxSize) {
-              const ratio = Math.min(maxSize / width, maxSize / height);
-              width = width * ratio;
-              height = height * ratio;
-            }
+      if (!file) return;
 
-            const element: ExcalidrawElement = {
-              id: this.generateId(),
-              type: 'image',
-              x: point.x,
-              y: point.y,
-              width: width,
-              height: height,
-              angle: 0,
-              strokeColor: this.appState.currentItemStrokeColor,
-              backgroundColor: 'transparent',
-              fillStyle: this.appState.currentItemFillStyle,
-              strokeWidth: this.appState.currentItemStrokeWidth,
-              strokeStyle: this.appState.currentItemStrokeStyle,
-              roughness: this.appState.currentItemRoughness,
-              opacity: this.appState.currentItemOpacity / 100,
-              seed: Math.floor(Math.random() * 1000000),
-              versionNonce: Math.floor(Math.random() * 1000000),
-              isDeleted: false,
-              groupIds: [],
-              updated: Date.now(),
-              imageData: e.target?.result as string
-            };
-
-            this.elements.push(element);
-            this.notifyElementsChanged();
-            this.commitNow();
-          };
-          img.src = e.target?.result as string;
-        };
-        reader.readAsDataURL(file);
+      if (file.size > 10 * 1024 * 1024) {
+        alert('Image is too large. Please choose a file under 10 MB.');
+        return;
       }
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          // Re-encode at a capped bitmap size. The original could be several
+          // MB, and every element is synced to peers and kept in undo history,
+          // so storing a full-resolution photo would bloat the whole document.
+          const MAX_DISPLAY = 300;
+          const MAX_BITMAP = 900;
+
+          const bitmapScale = Math.min(1, MAX_BITMAP / Math.max(img.width, img.height));
+          const bw = Math.max(1, Math.round(img.width * bitmapScale));
+          const bh = Math.max(1, Math.round(img.height * bitmapScale));
+
+          const off = document.createElement('canvas');
+          off.width = bw;
+          off.height = bh;
+          const offCtx = off.getContext('2d');
+          if (!offCtx) return;
+          offCtx.drawImage(img, 0, 0, bw, bh);
+          const imageData = off.toDataURL('image/png');
+
+          const displayScale = Math.min(1, MAX_DISPLAY / Math.max(img.width, img.height));
+
+          const element: ExcalidrawElement = {
+            id: this.generateId(),
+            type: 'image',
+            x: point.x,
+            y: point.y,
+            width: Math.round(img.width * displayScale),
+            height: Math.round(img.height * displayScale),
+            angle: 0,
+            strokeColor: this.appState.currentItemStrokeColor,
+            backgroundColor: 'transparent',
+            fillStyle: this.appState.currentItemFillStyle,
+            strokeWidth: this.appState.currentItemStrokeWidth,
+            strokeStyle: this.appState.currentItemStrokeStyle,
+            roughness: this.appState.currentItemRoughness,
+            opacity: this.appState.currentItemOpacity / 100,
+            seed: Math.floor(Math.random() * 1000000),
+            versionNonce: Math.floor(Math.random() * 1000000),
+            isDeleted: false,
+            groupIds: [],
+            updated: Date.now(),
+            imageData,
+          };
+
+          this.elements.push(element);
+          this.notifyElementsChanged();
+        };
+        img.src = ev.target?.result as string;
+      };
+      reader.readAsDataURL(file);
     };
     input.click();
   }
@@ -491,7 +529,6 @@ export class EventHandler {
       }
 
       this.appState.editingElement = null;
-      this.commitNow();
     }
   }
 
@@ -516,7 +553,6 @@ export class EventHandler {
       this.elements = this.elements.filter(el => el.id !== hit.id);
       this.appState.selectedElementIds = this.appState.selectedElementIds.filter(id => id !== hit.id);
       this.notifyElementsChanged();
-      this.commitNow();
     }
   }
 
@@ -548,7 +584,7 @@ export class EventHandler {
   }
 
   private generateId(): string {
-    return Math.random().toString(36).substr(2, 9);
+    return crypto.randomUUID();
   }
 
   getElements(): ExcalidrawElement[] {

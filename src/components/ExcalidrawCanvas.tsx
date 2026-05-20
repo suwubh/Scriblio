@@ -1,6 +1,6 @@
-import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
+import { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react'
 import { CanvasApp } from './Canvas'
-import { ExcalidrawElement, AppState } from '../types/excalidraw'
+import { ExcalidrawElement, AppState, Point } from '../types/excalidraw'
 import { usePresence } from '../collaboration'
 
 interface ExcalidrawCanvasProps {
@@ -17,12 +17,21 @@ export interface ExcalidrawCanvasRef {
   importFromJSON: (json: string) => void
 }
 
+/** Where the inline text editor is open: canvas coords for the element,
+ *  screen coords for positioning the input over the canvas. */
+interface TextDraft {
+  canvasPoint: Point
+  screenPoint: Point
+}
+
 export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvasProps>(
   ({ appState, onAppStateChange, elements, onElementsChange, onCanvasAppReady }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const appRef = useRef<CanvasApp | null>(null)
     const isInitializing = useRef(false)
-    const hasInitialized = useRef(false) 
+    const hasInitialized = useRef(false)
+
+    const [textDraft, setTextDraft] = useState<TextDraft | null>(null)
 
     const { users, updateCursor } = usePresence()
 
@@ -50,6 +59,9 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
 
         canvasApp.setOnElementsMutated((els) => onElementsChange(els))
         canvasApp.setOnAppStateMutated((st) => onAppStateChange(st))
+        canvasApp.setOnRequestText((canvasPoint, screenPoint) =>
+          setTextDraft({ canvasPoint, screenPoint })
+        )
 
         if (onCanvasAppReady) {
           onCanvasAppReady(canvasApp)
@@ -82,20 +94,20 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
         isInitializing.current = false
         return undefined
       }
-    }, []) 
+    }, [])
 
     useEffect(() => {
-      if (hasInitialized.current && 
-          appRef.current && 
+      if (hasInitialized.current &&
+          appRef.current &&
           typeof appRef.current.updateAppState === 'function') {
         appRef.current.updateAppState(appState as AppState)
       }
     }, [appState])
 
     useEffect(() => {
-      if (hasInitialized.current && 
-          elements !== undefined && 
-          appRef.current && 
+      if (hasInitialized.current &&
+          elements !== undefined &&
+          appRef.current &&
           typeof appRef.current.setElements === 'function') {
         appRef.current.setElements(elements)
       }
@@ -118,6 +130,13 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
         const y = e.clientY - rect.top
         updateCursor(x, y)
       }
+    }
+
+    const commitTextDraft = (value: string) => {
+      if (textDraft && value.trim()) {
+        appRef.current?.commitText(textDraft.canvasPoint, value)
+      }
+      setTextDraft(null)
     }
 
     const renderRemoteCursors = () => {
@@ -171,6 +190,29 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
           onMouseMove={handleMouseMove}
         />
         {renderRemoteCursors()}
+        {textDraft && (
+          <textarea
+            autoFocus
+            className="canvas-text-input"
+            style={{
+              position: 'absolute',
+              left: textDraft.screenPoint.x,
+              top: textDraft.screenPoint.y,
+              fontSize: appState.currentItemFontSize * appState.viewTransform.zoom,
+              color: appState.currentItemStrokeColor,
+            }}
+            onBlur={(e) => commitTextDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                commitTextDraft((e.target as HTMLTextAreaElement).value)
+              } else if (e.key === 'Escape') {
+                e.preventDefault()
+                setTextDraft(null)
+              }
+            }}
+          />
+        )}
       </div>
     )
   }

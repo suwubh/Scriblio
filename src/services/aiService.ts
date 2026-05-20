@@ -1,3 +1,5 @@
+import { parseDiagramResponse, RawDiagramElement } from './diagramParser';
+
 export interface AIMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -7,7 +9,6 @@ export interface AIRequest {
   messages: AIMessage[];
   temperature?: number;
   maxTokens?: number;
-  stream?: boolean;
 }
 
 export interface AIServiceConfig {
@@ -19,7 +20,6 @@ export interface AIServiceConfig {
 
 class AIService {
   private readonly config: Required<AIServiceConfig>;
-  private abortControllers: Map<string, AbortController> = new Map();
 
   constructor(config?: Partial<AIServiceConfig>) {
     this.config = {
@@ -31,46 +31,39 @@ class AIService {
     };
   }
 
+  /** Fetches with a timeout, retrying transient failures with a fixed delay. */
   private async fetchWithRetry(
-    input: RequestInfo,
-    init?: RequestInit,
+    init: RequestInit,
     attempts: number = this.config.retryAttempts
   ): Promise<Response> {
-    const requestId = Math.random().toString(36);
-    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
+
     try {
-      const controller = new AbortController();
-      this.abortControllers.set(requestId, controller);
-
-      const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
-
-      const response = await fetch(input, {
+      const response = await fetch(this.config.endpoint, {
         ...init,
         signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
-      this.abortControllers.delete(requestId);
-
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-
       return response;
     } catch (error) {
-      this.abortControllers.delete(requestId);
-      
-      if (attempts > 1 && !(error instanceof DOMException && error.name === 'AbortError')) {
+      const aborted = error instanceof DOMException && error.name === 'AbortError';
+      if (attempts > 1 && !aborted) {
         await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
-        return this.fetchWithRetry(input, init, attempts - 1);
+        return this.fetchWithRetry(init, attempts - 1);
       }
       throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
   async chat(request: AIRequest): Promise<string> {
     try {
-      const response = await this.fetchWithRetry(this.config.endpoint, {
+      const response = await this.fetchWithRetry({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
@@ -80,15 +73,13 @@ class AIService {
       return data.content;
     } catch (error) {
       console.error('AI Service Error:', error);
-      
+
       if (error instanceof DOMException && error.name === 'AbortError') {
         throw new Error('Request cancelled');
       }
-      
       if (error instanceof TypeError && error.message.includes('fetch')) {
         throw new Error('Network error: Unable to reach AI service');
       }
-
       throw error;
     }
   }
@@ -114,7 +105,7 @@ Rules:
     });
   }
 
-  async generateDiagram(prompt: string): Promise<any[]> {
+  async generateDiagram(prompt: string): Promise<RawDiagramElement[]> {
     try {
       const response = await this.chat({
         messages: [
@@ -143,50 +134,7 @@ Example output (this is the ONLY acceptable format):
         maxTokens: 3000,
       });
 
-      const cleanedResponse = response.trim()
-        .replace(/```json\s*/g, '')
-        .replace(/```\s*/g, '')
-        .trim();
-
-      const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
-
-      if (!jsonMatch) {
-        const hasDescription = /create|draw|make|generate/i.test(cleanedResponse);
-        if (hasDescription) {
-          throw new Error('AI provided a description instead of diagram data. Try a more specific prompt like "Create 3 rectangles in a row"');
-        }
-        throw new Error('AI did not return valid diagram data. The response format was incorrect.');
-      }
-
-      let elements: any[];
-      try {
-        elements = JSON.parse(jsonMatch[0]);
-      } catch {
-        throw new Error('AI returned malformed JSON. Please try again with a simpler prompt.');
-      }
-
-      if (!Array.isArray(elements) || elements.length === 0) {
-        throw new Error('AI returned an empty diagram. Try describing what you want to create.');
-      }
-
-      const validatedElements = elements.map((el, index) => {
-        if (!el.type) {
-          el.type = 'rectangle';
-        }
-
-        // Provide defaults for missing coordinates
-        el.x = el.x ?? 100 + (index * 150);
-        el.y = el.y ?? 100 + (Math.floor(index / 3) * 150);
-        el.width = el.width ?? 120;
-        el.height = el.height ?? 80;
-        el.strokeColor = el.strokeColor ?? '#000000';
-        el.backgroundColor = el.backgroundColor ?? 'transparent';
-
-        return el;
-      });
-
-      return validatedElements;
-
+      return parseDiagramResponse(response);
     } catch (error) {
       if (error instanceof Error) {
         if (error.message.includes('timeout') || error.message.includes('abort')) {
@@ -227,73 +175,6 @@ Example output (this is the ONLY acceptable format):
       ],
       maxTokens: 2000,
     });
-  }
-
-  async streamChat(
-    messages: AIMessage[],
-    onToken: (token: string) => void,
-    onError?: (error: Error) => void
-  ): Promise<void> {
-    const requestId = Math.random().toString(36);
-    
-    try {
-      const controller = new AbortController();
-      this.abortControllers.set(requestId, controller);
-
-      const response = await fetch(this.config.endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, stream: true }),
-        signal: controller.signal,
-      });
-
-      if (!response.body) {
-        throw new Error('Response body is null');
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n\n');
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const token = line.replace('data: ', '');
-              if (token !== '[DONE]') {
-                onToken(token);
-              }
-            }
-          }
-        }
-      } finally {
-        reader.releaseLock();
-        this.abortControllers.delete(requestId);
-      }
-    } catch (error) {
-      this.abortControllers.delete(requestId);
-      console.error('Streaming error:', error);
-      onError?.(error instanceof Error ? error : new Error(String(error)));
-      throw error;
-    }
-  }
-
-  cancelAllRequests(): void {
-    this.abortControllers.forEach(controller => controller.abort());
-    this.abortControllers.clear();
-  }
-
-  cancelRequest(requestId: string): void {
-    const controller = this.abortControllers.get(requestId);
-    if (controller) {
-      controller.abort();
-      this.abortControllers.delete(requestId);
-    }
   }
 }
 

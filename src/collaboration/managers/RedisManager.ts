@@ -3,16 +3,7 @@ export interface RedisPresenceMessage {
   type: 'join' | 'leave' | 'update'
   userId: string
   roomId: string
-  presence?: any
-  timestamp: number
-}
-
-export interface RedisSignalingMessage {
-  type: 'offer' | 'answer' | 'ice-candidate' | 'user-joined' | 'user-left'
-  from: string
-  to: string
-  roomId: string
-  data: any
+  presence?: unknown
   timestamp: number
 }
 
@@ -36,7 +27,6 @@ export class RedisManager {
   private currentRoomPresence: RoomPresenceState | null = null
   
   private onPresenceCallback?: (message: RedisPresenceMessage) => void
-  private onSignalingCallback?: (message: RedisSignalingMessage) => void
   private onConnectionCallback?: (connected: boolean) => void
 
   constructor(private redisWsUrl: string) {
@@ -133,8 +123,6 @@ export class RedisManager {
 
       if (message.channel?.startsWith('presence:')) {
         this.onPresenceCallback?.(message.data)
-      } else if (message.channel?.startsWith('signaling:')) {
-        this.onSignalingCallback?.(message.data)
       }
     } catch {
       // malformed message — ignore
@@ -216,16 +204,6 @@ export class RedisManager {
     }, true)
   }
 
-  subscribeToSignaling(roomId: string): void {
-    const channel = `signaling:${roomId}`
-    this.activeSubscriptions.add(channel)
-
-    this.send({
-      type: 'subscribe',
-      channel
-    }, true)
-  }
-
   publishPresence(message: RedisPresenceMessage): void {
     this.send({
       type: 'publish',
@@ -234,15 +212,7 @@ export class RedisManager {
     })
   }
 
-  publishSignaling(message: RedisSignalingMessage): void {
-    this.send({
-      type: 'publish',
-      channel: `signaling:${message.roomId}`,
-      data: message
-    })
-  }
-
-  joinRoom(roomId: string, userId: string, userPresence: any): void {
+  joinRoom(roomId: string, userId: string, userPresence: unknown): void {
     this.currentRoomPresence = {
       roomId,
       userId,
@@ -288,7 +258,7 @@ export class RedisManager {
     this.publishPresence(message)
   }
 
-  updatePresence(roomId: string, userId: string, presence: any): void {
+  updatePresence(roomId: string, userId: string, presence: unknown): void {
     if (
       this.currentRoomPresence &&
       this.currentRoomPresence.roomId === roomId &&
@@ -314,7 +284,7 @@ export class RedisManager {
     this.publishPresence(message)
   }
 
-  private send(message: any, silent: boolean = false): void {
+  private send(message: unknown, silent: boolean = false): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       try {
         this.ws.send(JSON.stringify(message))
@@ -332,10 +302,6 @@ export class RedisManager {
 
   onPresence(callback: (message: RedisPresenceMessage) => void): void {
     this.onPresenceCallback = callback
-  }
-
-  onSignaling(callback: (message: RedisSignalingMessage) => void): void {
-    this.onSignalingCallback = callback
   }
 
   onConnection(callback: (connected: boolean) => void): void {
@@ -365,7 +331,6 @@ export class RedisManager {
     }
 
     this.onPresenceCallback = undefined
-    this.onSignalingCallback = undefined
     this.onConnectionCallback = undefined
     this.activeSubscriptions.clear()
     this.currentRoomPresence = null

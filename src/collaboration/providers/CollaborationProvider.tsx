@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { WebrtcProvider } from 'y-webrtc'
 import { WebsocketProvider } from 'y-websocket'
 import { YjsDocumentManager } from '../managers/YjsDocumentManager'
-import { WebRTCManager } from '../managers/WebRTCManager'
 import { RedisManager } from '../managers/RedisManager'
 import { CollaborationConfig, ConnectionStatus } from '../types/collaboration.types'
 
@@ -10,7 +9,6 @@ interface CollaborationContextType {
   documentManager: YjsDocumentManager
   webrtcProvider: WebrtcProvider | null
   websocketProvider: WebsocketProvider | null
-  webrtcManager: WebRTCManager
   redisManager: RedisManager | null
   connectionStatus: ConnectionStatus
   config: CollaborationConfig
@@ -36,7 +34,6 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
   onError,
 }) => {
   const documentManagerRef = useRef<YjsDocumentManager | null>(null)
-  const webrtcManagerRef = useRef<WebRTCManager | null>(null)
   const redisManagerRef = useRef<RedisManager | null>(null)
 
   const [webrtcProvider, setWebrtcProvider] = useState<WebrtcProvider | null>(null)
@@ -58,12 +55,7 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
     documentManagerRef.current = new YjsDocumentManager(config.roomId)
   }
 
-  if (!webrtcManagerRef.current) {
-    webrtcManagerRef.current = new WebRTCManager()
-  }
-
   const documentManager = documentManagerRef.current
-  const webrtcManager = webrtcManagerRef.current
 
   const reconnect = () => {
     setError(null)
@@ -99,7 +91,6 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
         const redis = new RedisManager(config.redisWsUrl)
 
         redis.subscribeToPresence(config.roomId)
-        redis.subscribeToSignaling(config.roomId)
 
         redis.joinRoom(config.roomId, config.userId, {
           name: config.userName || 'Anonymous',
@@ -187,7 +178,6 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
     documentManager,
     webrtcProvider,
     websocketProvider,
-    webrtcManager,
     redisManager,
     connectionStatus,
     config,
