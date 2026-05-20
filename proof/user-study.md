@@ -8,8 +8,8 @@ to me because I built it. So I ran a small study.
 
 Deployed the app publicly and put up a 3-question Google Form.
 
-- Demo:   `<paste deployed URL here once live>`
-- Survey: `<paste Google Form URL here>`
+- Demo:   `https://scriblio-rose.vercel.app`
+- Survey: `https://forms.gle/UxPNXyR4vfPxpGfZ9`
 
 Posted the link in three places:
 - r/SideProject
@@ -20,7 +20,7 @@ Recruitment message I used:
 
 > Built an AI-powered collaborative whiteboard. Looking for testers (5 min,
 > 3 questions). Try the Ctrl+K palette and tell me if it's actually faster
-> than drawing diagrams by hand. Link + form: `<demo>` / `<form>`
+> than drawing diagrams by hand. Link + form: `https://scriblio-rose.vercel.app` / `https://forms.gle/UxPNXyR4vfPxpGfZ9`
 
 ## Questions
 
