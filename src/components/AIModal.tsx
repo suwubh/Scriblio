@@ -362,6 +362,9 @@ export const AIModal: React.FC<AIModalProps> = ({
         aria-label="AI Assistant"
         onClick={e => e.stopPropagation()}
       >
+        {/* Ambient aurora glow */}
+        <div className="ai-modal-aurora" aria-hidden="true" />
+
         {/* Header */}
         <div className="ai-modal-header">
           <div className="ai-brand-mark" aria-hidden="true">

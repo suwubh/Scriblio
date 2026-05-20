@@ -6,7 +6,9 @@ export const useCollaboration = () => {
   const transportConnected =
     context.connectionStatus.webrtc === 'connected' ||
     context.connectionStatus.websocket === 'connected'
-  const isConnected = hasRedisSync ? context.connectionStatus.synced : transportConnected
+  // Drawings sync over the Yjs transports (WebRTC / WebSocket). Treat the room
+  // as connected when either transport is up, or when Redis presence is synced.
+  const isConnected = transportConnected || (hasRedisSync && context.connectionStatus.synced)
   
   return {
     documentManager: context.documentManager,

@@ -6,6 +6,7 @@ export { PresenceProvider, usePresenceContext } from './providers/PresenceProvid
 export { useCollaboration } from './hooks/useCollaboration'
 export { usePresence } from './hooks/usePresence'
 export { useSharedCanvas } from './hooks/useSharedCanvas'
+export { useCanvasSync } from './hooks/useCanvasSync'
 
 // Managers
 export { YjsDocumentManager } from './managers/YjsDocumentManager'

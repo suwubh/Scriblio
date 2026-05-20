@@ -4,30 +4,47 @@ import { Toolbar } from './components/Toolbar'
 import { PropertiesPanel } from './components/PropertiesPanel'
 import { Footer } from './components/Footer'
 import { useExcalidrawState } from './hooks/useExcalidrawState'
-import { CollaborationProvider, PresenceProvider } from './collaboration'
-import { generateUserId, generateUserColor } from './collaboration'
-import { ConnectionStatus } from './components/ConnectionStatus'
+import {
+  CollaborationProvider,
+  PresenceProvider,
+  useCollaboration,
+  useCanvasSync,
+  generateUserId,
+  generateUserColor,
+} from './collaboration'
+import { RoomLanding } from './components/RoomLanding'
+import { RoomBar } from './components/RoomBar'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AICommandPalette } from './components/AICommandPalette'
 import './styles/excalidraw.css'
 import './styles/ai-modal.css'
 import './styles/ai-command-palette.css'
+import './styles/room.css'
 import { AppState, ExcalidrawElement } from './types/excalidraw'
 
-function getRoomId(): string {
-  const hash = window.location.hash.slice(1)
-  if (hash) return hash
-  const id = Math.random().toString(36).slice(2, 10)
-  window.location.hash = id
-  return id
-}
+const STORAGE_NAME_KEY = 'scriblio:user-name'
 
-const roomId = getRoomId()
+// Stable per-browser-session identity. The display name is chosen by the user.
 const userId = generateUserId()
-const userName = `User ${userId.slice(-4)}`
 const userColor = generateUserColor()
 
-function AppContent() {
+/** Cleans a raw room id (handles pasted URLs, casing, stray characters). */
+function normalizeRoomId(raw: string): string {
+  let value = raw.trim()
+  if (value.includes('#')) value = value.split('#').pop() ?? ''
+  return value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '')
+}
+
+function fallbackName(): string {
+  return `User ${userId.slice(-4)}`
+}
+
+interface AppContentProps {
+  roomId: string
+  onLeaveRoom: () => void
+}
+
+function AppContent({ roomId, onLeaveRoom }: AppContentProps) {
   const {
     elements,
     appState,
@@ -42,7 +59,12 @@ function AppContent() {
     canRedo,
     setCanvasAppRef,
     setElementsFromCanvas,
+    applyRemoteElements,
   } = useExcalidrawState()
+
+  // Bridge the local canvas with the shared Yjs document for this room.
+  const { documentManager } = useCollaboration()
+  useCanvasSync(documentManager, elements, applyRemoteElements)
 
   const canvasRef = useRef<ExcalidrawCanvasRef>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
@@ -162,7 +184,7 @@ function AppContent() {
             🔒
           </button>
 
-          <ConnectionStatus />
+          <RoomBar roomId={roomId} onLeave={onLeaveRoom} />
 
           <div className="hamburger-container">
             <button
@@ -175,7 +197,7 @@ function AppContent() {
           </div>
         </div>
       </div>
-      
+
       <div className="content">
         <div className="canvas-wrap">
           <ExcalidrawCanvas
@@ -228,6 +250,48 @@ function AppContent() {
 }
 
 export default function App() {
+  // Room id is read from the URL hash so shared links join directly.
+  const [roomId, setRoomId] = useState<string | null>(() => {
+    const fromHash = normalizeRoomId(window.location.hash.slice(1))
+    return fromHash || null
+  })
+
+  const [userName, setUserName] = useState<string>(() => {
+    try {
+      return localStorage.getItem(STORAGE_NAME_KEY)?.trim() || fallbackName()
+    } catch {
+      return fallbackName()
+    }
+  })
+
+  const enterRoom = (rawRoomId: string, rawName: string) => {
+    const id = normalizeRoomId(rawRoomId)
+    if (!id) return
+
+    const name = rawName.trim() || fallbackName()
+    try {
+      localStorage.setItem(STORAGE_NAME_KEY, name)
+    } catch {
+      /* storage unavailable — ignore */
+    }
+    setUserName(name)
+    window.location.hash = id
+    setRoomId(id)
+  }
+
+  const leaveRoom = () => {
+    try {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    } catch {
+      window.location.hash = ''
+    }
+    setRoomId(null)
+  }
+
+  if (!roomId) {
+    return <RoomLanding defaultName={userName} onEnter={enterRoom} />
+  }
+
   const collaborationConfig = {
     roomId,
     userId,
@@ -284,12 +348,13 @@ export default function App() {
         </div>
       )}
     >
-      <CollaborationProvider 
+      <CollaborationProvider
+        key={roomId}
         config={collaborationConfig}
         onError={handleCollaborationError}
       >
         <PresenceProvider userId={userId} userName={userName} userColor={userColor}>
-          <AppContent />
+          <AppContent roomId={roomId} onLeaveRoom={leaveRoom} />
         </PresenceProvider>
       </CollaborationProvider>
     </ErrorBoundary>

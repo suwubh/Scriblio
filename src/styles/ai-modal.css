@@ -1,47 +1,54 @@
-/* src/styles/ai-modal.css — Scriblio AI command palette */
+/* src/styles/ai-modal.css — Scriblio AI command palette (emerald · glass & glow) */
 
 /* ============================== Theme tokens ============================== */
 .ai-modal-overlay {
-  /* brand */
-  --aip-accent: var(--accent, #646cff);
-  --aip-accent-soft: #8b84ff;
-  --aip-glow: rgba(100, 108, 255, 0.45);
+  /* brand — emerald, scoped to the AI palette only */
+  --aip-accent: #10b981;
+  --aip-accent-soft: #34d399;
+  --aip-accent-2: #2dd4bf;
+  --aip-glow: rgba(16, 185, 129, 0.45);
 
   /* light surfaces */
+  --aip-shell: rgba(255, 255, 255, 0.85);
   --aip-surface: #ffffff;
-  --aip-surface-2: #f4f5f9;
-  --aip-surface-3: #e9ebf2;
-  --aip-border: rgba(20, 22, 40, 0.10);
-  --aip-border-strong: rgba(20, 22, 40, 0.16);
-  --aip-text: #1a1c25;
-  --aip-text-muted: #5b6170;
-  --aip-text-faint: #9298a6;
+  --aip-surface-2: #f2f4f7;
+  --aip-surface-3: #e7eaef;
+  --aip-border: rgba(16, 36, 28, 0.10);
+  --aip-border-strong: rgba(16, 36, 28, 0.17);
+  --aip-text: #16201c;
+  --aip-text-muted: #586066;
+  --aip-text-faint: #8b9298;
 
-  --aip-overlay-bg: rgba(20, 22, 38, 0.42);
-  --aip-shadow: 0 28px 70px -20px rgba(20, 22, 45, 0.45),
-                0 8px 24px -12px rgba(20, 22, 45, 0.3);
+  --aip-overlay-bg: rgba(14, 22, 20, 0.40);
+  --aip-shadow: 0 30px 72px -22px rgba(8, 30, 24, 0.45),
+                0 8px 24px -14px rgba(8, 30, 24, 0.3);
 
   --aip-danger: #e5484d;
   --aip-danger-text: #bf2c31;
+
+  --aip-aurora-opacity: 0.42;
 }
 
 @media (prefers-color-scheme: dark) {
   .ai-modal-overlay {
-    --aip-surface: #181a21;
-    --aip-surface-2: #20232c;
-    --aip-surface-3: #292d38;
+    --aip-shell: rgba(20, 23, 28, 0.88);
+    --aip-surface: #181b21;
+    --aip-surface-2: #21252e;
+    --aip-surface-3: #2a2f39;
     --aip-border: rgba(255, 255, 255, 0.08);
     --aip-border-strong: rgba(255, 255, 255, 0.15);
-    --aip-text: #e9eaef;
-    --aip-text-muted: #969cab;
-    --aip-text-faint: #676d7b;
+    --aip-text: #e9ece9;
+    --aip-text-muted: #98a09c;
+    --aip-text-faint: #69716e;
 
-    --aip-overlay-bg: rgba(7, 8, 13, 0.62);
-    --aip-shadow: 0 32px 84px -24px rgba(0, 0, 0, 0.78),
-                  0 10px 30px -16px rgba(0, 0, 0, 0.6);
+    --aip-overlay-bg: rgba(5, 8, 7, 0.60);
+    --aip-shadow: 0 34px 88px -26px rgba(0, 0, 0, 0.80),
+                  0 10px 30px -18px rgba(0, 0, 0, 0.60);
 
     --aip-danger: #ff6066;
     --aip-danger-text: #ff9b9f;
+
+    --aip-aurora-opacity: 0.62;
   }
 }
 
@@ -55,8 +62,8 @@
   justify-content: center;
   padding: clamp(1rem, 9vh, 6.5rem) 1rem 1.5rem;
   background: var(--aip-overlay-bg);
-  backdrop-filter: blur(8px) saturate(120%);
-  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  backdrop-filter: blur(8px) saturate(125%);
+  -webkit-backdrop-filter: blur(8px) saturate(125%);
   animation: aipOverlayIn 0.18s ease;
 }
 
@@ -68,17 +75,26 @@
 /* ============================= Modal container =========================== */
 .ai-modal {
   position: relative;
+  isolation: isolate;
   width: 100%;
-  max-width: 620px;
+  max-width: 624px;
   max-height: min(82vh, 760px);
   display: flex;
   flex-direction: column;
-  background: var(--aip-surface);
+  background: var(--aip-shell);
+  backdrop-filter: blur(22px) saturate(165%);
+  -webkit-backdrop-filter: blur(22px) saturate(165%);
   border: 1px solid var(--aip-border);
-  border-radius: 20px;
-  box-shadow: var(--aip-shadow);
+  border-radius: 22px;
+  box-shadow: var(--aip-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.07);
   overflow: hidden;
   animation: aipModalIn 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* keep real content above the aurora layer */
+.ai-modal > *:not(.ai-modal-aurora) {
+  position: relative;
+  z-index: 1;
 }
 
 /* bright hairline along the top edge */
@@ -90,7 +106,7 @@
   right: 12%;
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--aip-accent), transparent);
-  opacity: 0.75;
+  opacity: 0.85;
   pointer-events: none;
   z-index: 3;
 }
@@ -100,6 +116,32 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* ============================== Ambient aurora =========================== */
+.ai-modal-aurora {
+  position: absolute;
+  top: -46%;
+  left: -26%;
+  right: -26%;
+  height: 92%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 50% at 27% 30%,
+      color-mix(in srgb, var(--aip-accent) 72%, transparent), transparent 72%),
+    radial-gradient(36% 46% at 73% 21%,
+      color-mix(in srgb, var(--aip-accent-2) 64%, transparent), transparent 72%),
+    radial-gradient(30% 40% at 52% 56%,
+      color-mix(in srgb, var(--aip-accent-soft) 48%, transparent), transparent 76%);
+  filter: blur(46px);
+  opacity: var(--aip-aurora-opacity);
+  animation: aipAurora 24s ease-in-out infinite alternate;
+}
+
+@keyframes aipAurora {
+  0%   { transform: translate3d(-3%, -2%, 0) scale(1); }
+  100% { transform: translate3d(4%, 5%, 0) scale(1.16); }
+}
+
 /* ================================= Header ================================ */
 .ai-modal-header {
   display: flex;
@@ -107,11 +149,6 @@
   gap: 0.8rem;
   padding: 1rem 1.1rem 1rem 1.15rem;
   border-bottom: 1px solid var(--aip-border);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--aip-accent) 9%, var(--aip-surface)),
-    var(--aip-surface)
-  );
   flex-shrink: 0;
 }
 
@@ -124,8 +161,8 @@
   place-items: center;
   color: #fff;
   background: linear-gradient(142deg, var(--aip-accent-soft), var(--aip-accent));
-  box-shadow: 0 5px 16px -4px var(--aip-glow),
-              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 6px 18px -4px var(--aip-glow),
+              inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .ai-brand-mark svg { width: 20px; height: 20px; }
@@ -181,9 +218,7 @@
   border-color: var(--aip-border);
 }
 
-.ai-close-btn:hover {
-  color: var(--aip-danger);
-}
+.ai-close-btn:hover { color: var(--aip-danger); }
 
 .ai-icon-btn:active { transform: scale(0.9); }
 
@@ -191,11 +226,11 @@
 .ai-mode-selector {
   position: relative;
   display: flex;
-  margin: 0.85rem 1.1rem 0.35rem;
+  margin: 0.85rem 1.1rem 0.4rem;
   padding: 4px;
   border: 1px solid var(--aip-border);
   border-radius: 13px;
-  background: var(--aip-surface-2);
+  background: color-mix(in srgb, var(--aip-surface-2) 70%, transparent);
   flex-shrink: 0;
 }
 
@@ -206,9 +241,10 @@
   bottom: 4px;
   width: calc((100% - 8px) / 4);
   border-radius: 9px;
-  background: color-mix(in srgb, var(--aip-accent) 14%, var(--aip-surface));
-  border: 1px solid color-mix(in srgb, var(--aip-accent) 38%, transparent);
-  box-shadow: 0 2px 10px -3px var(--aip-glow);
+  background: color-mix(in srgb, var(--aip-accent) 18%, var(--aip-surface));
+  border: 1px solid color-mix(in srgb, var(--aip-accent) 42%, transparent);
+  box-shadow: 0 2px 12px -3px var(--aip-glow),
+              inset 0 1px 0 rgba(255, 255, 255, 0.18);
   transition: transform 0.34s cubic-bezier(0.5, 1.25, 0.4, 1);
   pointer-events: none;
 }
@@ -236,7 +272,7 @@
 .ai-mode-btn:hover:not(.active) { color: var(--aip-text); }
 
 .ai-mode-btn.active {
-  color: color-mix(in srgb, var(--aip-accent) 82%, var(--aip-text));
+  color: color-mix(in srgb, var(--aip-accent) 80%, var(--aip-text));
 }
 
 .ai-mode-icon { display: grid; place-items: center; }
@@ -290,21 +326,21 @@
 .ai-welcome-icon {
   width: 58px;
   height: 58px;
-  border-radius: 17px;
+  border-radius: 18px;
   display: grid;
   place-items: center;
   color: #fff;
   background: linear-gradient(142deg, var(--aip-accent-soft), var(--aip-accent));
-  box-shadow: 0 12px 32px -10px var(--aip-glow),
-              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 14px 36px -10px var(--aip-glow),
+              inset 0 1px 0 rgba(255, 255, 255, 0.45);
   animation: aipBreathe 4.5s ease-in-out infinite;
 }
 
 .ai-welcome-icon svg { width: 30px; height: 30px; }
 
 @keyframes aipBreathe {
-  0%, 100% { box-shadow: 0 12px 32px -12px var(--aip-glow), inset 0 1px 0 rgba(255,255,255,0.4); }
-  50%      { box-shadow: 0 16px 44px -8px var(--aip-glow),  inset 0 1px 0 rgba(255,255,255,0.4); }
+  0%, 100% { box-shadow: 0 14px 34px -12px var(--aip-glow), inset 0 1px 0 rgba(255,255,255,0.45); }
+  50%      { box-shadow: 0 18px 50px -8px  var(--aip-glow), inset 0 1px 0 rgba(255,255,255,0.45); }
 }
 
 .ai-welcome-title {
@@ -365,8 +401,8 @@
 }
 
 .ai-quick-action-btn:hover {
-  border-color: color-mix(in srgb, var(--aip-accent) 45%, transparent);
-  background: color-mix(in srgb, var(--aip-accent) 7%, var(--aip-surface-2));
+  border-color: color-mix(in srgb, var(--aip-accent) 48%, transparent);
+  background: color-mix(in srgb, var(--aip-accent) 8%, var(--aip-surface-2));
   transform: translateX(3px);
 }
 
@@ -378,14 +414,14 @@
   display: grid;
   place-items: center;
   color: var(--aip-accent);
-  background: color-mix(in srgb, var(--aip-accent) 12%, var(--aip-surface-3));
+  background: color-mix(in srgb, var(--aip-accent) 13%, var(--aip-surface-3));
   transition: background 0.18s ease;
 }
 
 .ai-quick-icon svg { width: 17px; height: 17px; }
 
 .ai-quick-action-btn:hover .ai-quick-icon {
-  background: color-mix(in srgb, var(--aip-accent) 22%, var(--aip-surface-3));
+  background: color-mix(in srgb, var(--aip-accent) 24%, var(--aip-surface-3));
 }
 
 .ai-quick-body {
@@ -419,7 +455,7 @@
   border-radius: 6px;
   font-size: 0.8rem;
   color: var(--aip-accent);
-  background: color-mix(in srgb, var(--aip-accent) 14%, transparent);
+  background: color-mix(in srgb, var(--aip-accent) 15%, transparent);
   opacity: 0;
   transform: translateX(-4px);
   transition: opacity 0.18s ease, transform 0.18s ease;
@@ -460,7 +496,7 @@
 .ai-message-assistant .ai-message-avatar {
   color: #fff;
   background: linear-gradient(142deg, var(--aip-accent-soft), var(--aip-accent));
-  box-shadow: 0 3px 10px -3px var(--aip-glow);
+  box-shadow: 0 3px 12px -3px var(--aip-glow);
 }
 
 .ai-message-user .ai-message-avatar {
@@ -491,7 +527,7 @@
   background: linear-gradient(142deg, var(--aip-accent), var(--aip-accent-soft));
   color: #fff;
   border-top-right-radius: 4px;
-  box-shadow: 0 5px 16px -6px var(--aip-glow);
+  box-shadow: 0 6px 18px -6px var(--aip-glow);
 }
 
 /* ============================ Loading indicator ========================== */
@@ -577,11 +613,6 @@
   gap: 0.55rem;
   padding: 0.85rem 1.1rem;
   border-top: 1px solid var(--aip-border);
-  background: linear-gradient(
-    0deg,
-    color-mix(in srgb, var(--aip-accent) 5%, var(--aip-surface)),
-    var(--aip-surface)
-  );
   flex-shrink: 0;
 }
 
@@ -622,9 +653,9 @@
 .ai-input::placeholder { color: var(--aip-text-faint); }
 
 .ai-input:focus {
-  border-color: color-mix(in srgb, var(--aip-accent) 60%, transparent);
+  border-color: color-mix(in srgb, var(--aip-accent) 62%, transparent);
   background: var(--aip-surface);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--aip-accent) 14%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--aip-accent) 15%, transparent);
 }
 
 .ai-input:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -641,8 +672,8 @@
   color: #fff;
   cursor: pointer;
   background: linear-gradient(142deg, var(--aip-accent-soft), var(--aip-accent));
-  box-shadow: 0 6px 18px -6px var(--aip-glow),
-              inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  box-shadow: 0 7px 20px -6px var(--aip-glow),
+              inset 0 1px 0 rgba(255, 255, 255, 0.35);
   transition: transform 0.12s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
@@ -650,8 +681,8 @@
 
 .ai-submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px -6px var(--aip-glow),
-              inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  box-shadow: 0 11px 26px -6px var(--aip-glow),
+              inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .ai-submit-btn:active:not(:disabled) { transform: translateY(0) scale(0.95); }
@@ -666,7 +697,7 @@
   flex-wrap: wrap;
   padding: 0.6rem 1.1rem;
   border-top: 1px solid var(--aip-border);
-  background: var(--aip-surface-2);
+  background: color-mix(in srgb, var(--aip-surface-2) 60%, transparent);
   flex-shrink: 0;
 }
 
@@ -718,7 +749,7 @@
 /* =============================== Responsive ============================== */
 @media (max-width: 600px) {
   .ai-modal-overlay { padding: 1rem 0.75rem; align-items: center; }
-  .ai-modal { max-height: 90vh; border-radius: 18px; }
+  .ai-modal { max-height: 90vh; border-radius: 20px; }
   .ai-mode-label { display: none; }
   .ai-mode-btn { padding: 0.55rem 0.3rem; }
   .ai-message-content { max-width: 86%; }
@@ -734,6 +765,7 @@
 @media (prefers-reduced-motion: reduce) {
   .ai-modal-overlay,
   .ai-modal,
+  .ai-modal-aurora,
   .ai-welcome,
   .ai-welcome-icon,
   .ai-message,

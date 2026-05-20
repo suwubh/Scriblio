@@ -44,6 +44,7 @@ export function useExcalidrawState() {
   const canvasAppRef = useRef<any>(null);
   const undoRedoLock = useRef(false);
   const isInitialized = useRef(false);
+  const appStateRef = useRef(appState);
 
   useEffect(() => {
     if (!isInitialized.current) {
@@ -51,6 +52,10 @@ export function useExcalidrawState() {
       isInitialized.current = true;
     }
   }, []); // intentionally run once on mount
+
+  useEffect(() => {
+    appStateRef.current = appState;
+  }, [appState]);
 
   const setCanvasAppRef = useCallback((app: any) => {
     canvasAppRef.current = app;
@@ -72,6 +77,17 @@ export function useExcalidrawState() {
       saveState(newElements, appState);
     }
   }, [saveState, appState]);
+
+  // Applies elements received from a remote collaborator. Updates React state
+  // and the canvas without re-broadcasting, and rebases the undo history onto
+  // the merged result so a later local undo can't delete other people's work.
+  const applyRemoteElements = useCallback((remoteElements: ExcalidrawElement[]) => {
+    setElements(remoteElements);
+    if (canvasAppRef.current) {
+      canvasAppRef.current.setElements(remoteElements);
+    }
+    clear(remoteElements, appStateRef.current);
+  }, [clear]);
 
   const addElement = useCallback((element: ExcalidrawElement) => {
     if (undoRedoLock.current) return;
@@ -195,6 +211,7 @@ export function useExcalidrawState() {
     appState,
     updateAppState,
     setElementsFromCanvas,
+    applyRemoteElements,
     addElement,
     updateElement,
     deleteElements,
