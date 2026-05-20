@@ -177,13 +177,11 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
     }
   }, [config.roomId, config.userId, retryVersion])
 
-  useEffect(() => {
-    return () => {
-      documentManager.destroy()
-      webrtcManager.destroy()
-      redisManagerRef.current?.destroy()
-    }
-  }, [documentManager, webrtcManager])
+  // NOTE: the Yjs document is intentionally NOT destroyed here. React StrictMode
+  // mounts every component twice in development; destroying the doc on the first
+  // (simulated) unmount left every provider on the second mount bound to a dead
+  // document, so nothing ever synced. Providers are torn down in the init effect
+  // above; the document is released by GC when this provider unmounts.
 
   const contextValue: CollaborationContextType = {
     documentManager,

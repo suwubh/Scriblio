@@ -13,12 +13,11 @@ export class AwarenessManager {
   }
 
   private setupAwarenessListeners(): void {
-    this.awareness.on('change', () => {
-      this.handleAwarenessChange()
-    })
+    // Use the bound arrow reference so destroy() can actually remove it.
+    this.awareness.on('change', this.handleAwarenessChange)
   }
 
-  private handleAwarenessChange(): void {
+  private handleAwarenessChange = (): void => {
     const states = this.awareness.getStates()
     const users = new Map<string, UserPresence>()
 
