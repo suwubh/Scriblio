@@ -7,6 +7,54 @@ A real-time collaborative whiteboard with CRDT-based sync, WebRTC peer-to-peer n
 
 ---
 
+```mermaid
+flowchart TB
+  subgraph BROWSER["Browser Client  (React + Vite)"]
+    direction TB
+    UI["React UI\nToolbar · Panels · RoomBar"]
+    CE["Canvas Engine\nRenderer + EventHandler"]
+    YJ["Yjs CRDT Document\nY.Doc  ·  Y.Map  ·  UndoManager"]
+    RTC["y-webrtc Provider\nP2P sync"]
+    WSP["y-websocket Provider\nFallback sync"]
+    AIP["AI Command Palette\nCtrl+K  ·  AIModal"]
+    AIS["AI Service\naiService  ·  diagramParser"]
+    AWR["AwarenessManager\nLive cursors"]
+    RMG["RedisManager\nPresence  ·  pub/sub"]
+    HK["useExcalidrawState\nuseYjsHistory  ·  useCanvasSync"]
+  end
+
+  subgraph BACKEND["Backend Services  (Docker Compose)"]
+    direction LR
+    SIG["Signaling Server\nws://:4000"]
+    RWB["Redis WS Bridge\nws://:8080"]
+    RDB[("Redis\n:6379")]
+    PRX["AI Proxy  (Express)\nhttp://:3001  /api/chat"]
+  end
+
+  subgraph EXTERNAL["External Services"]
+    direction LR
+    YPB["Public Yjs WS\nwss://demos.yjs.dev"]
+    OAI["OpenAI\ngpt-4o-mini"]
+    GRQ["Groq  (fallback)\nllama-3.3-70b"]
+  end
+
+  UI --> CE
+  UI --> AIP
+  CE <-->|useCanvasSync| HK
+  HK <--> YJ
+  YJ --> RTC
+  YJ --> WSP
+  RTC <-->|WebRTC signaling| SIG
+  WSP <-->|WS fallback| YPB
+  RTC --> AWR
+  AIP --> AIS
+  AIS -->|HTTPS| PRX
+  RMG <-->|presence pub/sub| RWB
+  RWB <--> RDB
+  PRX -->|primary| OAI
+  PRX -->|429 fallback| GRQ
+```
+
 ## Features
 
 - **Real-time collaboration** — [Yjs](https://github.com/yjs/yjs) CRDTs with [`y-webrtc`](https://github.com/yjs/y-webrtc) for peer-to-peer sync, plus a custom WebSocket signaling server
