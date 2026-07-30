@@ -1,5 +1,5 @@
 import rough from 'roughjs';
-import { ExcalidrawElement, AppState } from '../types/excalidraw';
+import { ScriblioElement, AppState } from '../types/scriblio';
 
 export class CanvasRenderer {
   private canvas: HTMLCanvasElement;
@@ -13,7 +13,7 @@ export class CanvasRenderer {
     this.roughCanvas = rough.canvas(canvas);
   }
 
-  render(elements: ExcalidrawElement[], appState: AppState, selectionRect?: { start: { x: number; y: number }; current: { x: number; y: number } } | null) {
+  render(elements: ScriblioElement[], appState: AppState, selectionRect?: { start: { x: number; y: number }; current: { x: number; y: number } } | null) {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.ctx.save();
     this.ctx.translate(appState.viewTransform.x, appState.viewTransform.y);
@@ -30,7 +30,7 @@ export class CanvasRenderer {
     this.ctx.restore();
   }
 
-  private renderElement(element: ExcalidrawElement, isSelected: boolean) {
+  private renderElement(element: ScriblioElement, isSelected: boolean) {
     const options = {
       stroke: element.strokeColor,
       fill: element.backgroundColor === 'transparent' ? undefined : element.backgroundColor,
@@ -87,7 +87,7 @@ export class CanvasRenderer {
     this.ctx.restore();
   }
 
-  private renderImage(element: ExcalidrawElement) {
+  private renderImage(element: ScriblioElement) {
     if (!element.imageData) return;
 
     let img = this.imageCache.get(element.id);
@@ -122,7 +122,7 @@ export class CanvasRenderer {
     this.ctx.setLineDash([]);
   }
 
-  private renderDiamond(element: ExcalidrawElement, options: any) {
+  private renderDiamond(element: ScriblioElement, options: any) {
     const path = [
       [element.width / 2, 0],
       [element.width, element.height / 2],
@@ -133,7 +133,7 @@ export class CanvasRenderer {
     this.roughCanvas.linearPath(path, options);
   }
 
-  private renderArrow(element: ExcalidrawElement, options: any) {
+  private renderArrow(element: ScriblioElement, options: any) {
     const startX = 0;
     const startY = 0;
     const endX = element.width;
@@ -153,13 +153,13 @@ export class CanvasRenderer {
     this.roughCanvas.line(endX, endY, arrowHead2X, arrowHead2Y, options);
   }
 
-  private renderFreehand(element: ExcalidrawElement, options: any) {
+  private renderFreehand(element: ScriblioElement, options: any) {
     if (element.points && element.points.length > 1) {
       this.roughCanvas.curve(element.points.map(p => [p.x, p.y]), options);
     }
   }
 
-  private renderText(element: ExcalidrawElement) {
+  private renderText(element: ScriblioElement) {
     if (element.text) {
       this.ctx.font = `${element.fontSize || 20}px ${element.fontFamily || 'Virgil'}`;
       this.ctx.fillStyle = element.strokeColor;
@@ -169,7 +169,7 @@ export class CanvasRenderer {
     }
   }
 
-  private renderSelectionOutline(element: ExcalidrawElement) {
+  private renderSelectionOutline(element: ScriblioElement) {
     this.ctx.strokeStyle = '#6965db';
     this.ctx.lineWidth = 2;
     this.ctx.setLineDash([8, 4]);

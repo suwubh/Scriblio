@@ -11,8 +11,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        'excalidraw-primary': '#6965db',
-        'excalidraw-gray': {
+        'scriblio-primary': '#6965db',
+        'scriblio-gray': {
           10: '#f8f9fa',
           20: '#f1f3f4',
           30: '#e9ecef',

@@ -1,4 +1,4 @@
-/* src/styles/excalidraw.css */
+/* src/styles/scriblio.css */
 
 /* Ensure full viewport coverage */
 * {
@@ -206,7 +206,7 @@ html, body, #root {
   position: relative; /*  ADD THIS */
 }
 
-.excalidraw-canvas {
+.scriblio-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -217,7 +217,7 @@ html, body, #root {
 }
 
 /* Eraser cursor */
-.excalidraw-canvas.cursor-eraser {
+.scriblio-canvas.cursor-eraser {
   cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path fill='%23ffffff' stroke='%23000000' stroke-width='1' d='M3 14l7-7 5 5-7 7H3z'/></svg>") 4 20, crosshair;
 }
 
@@ -346,7 +346,7 @@ html, body, #root {
 }
 
 /* Sliders */
-.excalidraw-slider {
+.scriblio-slider {
   width: 100%;
   accent-color: var(--accent, #646cff);
 }

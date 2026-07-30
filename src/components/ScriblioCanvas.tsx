@@ -1,17 +1,17 @@
 import { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react'
 import { CanvasApp } from './Canvas'
-import { ExcalidrawElement, AppState, Point } from '../types/excalidraw'
+import { ScriblioElement, AppState, Point } from '../types/scriblio'
 import { usePresence } from '../collaboration'
 
-interface ExcalidrawCanvasProps {
-  elements: ExcalidrawElement[]
+interface ScriblioCanvasProps {
+  elements: ScriblioElement[]
   appState: AppState
-  onElementsChange: (elements: ExcalidrawElement[]) => void
+  onElementsChange: (elements: ScriblioElement[]) => void
   onAppStateChange: (appState: Partial<AppState>) => void
   onCanvasAppReady?: (canvasApp: CanvasApp) => void
 }
 
-export interface ExcalidrawCanvasRef {
+export interface ScriblioCanvasRef {
   clearCanvas: () => void
   exportToJSON: () => string
   importFromJSON: (json: string) => void
@@ -24,7 +24,7 @@ interface TextDraft {
   screenPoint: Point
 }
 
-export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvasProps>(
+export const ScriblioCanvas = forwardRef<ScriblioCanvasRef, ScriblioCanvasProps>(
   ({ appState, onAppStateChange, elements, onElementsChange, onCanvasAppReady }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const appRef = useRef<CanvasApp | null>(null)
@@ -235,4 +235,4 @@ export const ExcalidrawCanvas = forwardRef<ExcalidrawCanvasRef, ExcalidrawCanvas
   }
 )
 
-ExcalidrawCanvas.displayName = 'ExcalidrawCanvas'
+ScriblioCanvas.displayName = 'ScriblioCanvas'

@@ -1,9 +1,9 @@
-import { ExcalidrawElement, AppState, Point } from '../types/excalidraw';
+import { ScriblioElement, AppState, Point } from '../types/scriblio';
 
 export class EventHandler {
-  private onElementsChanged?: (elements: ExcalidrawElement[]) => void;
+  private onElementsChanged?: (elements: ScriblioElement[]) => void;
   private canvas: HTMLCanvasElement;
-  private elements: ExcalidrawElement[] = [];
+  private elements: ScriblioElement[] = [];
   private appState: AppState;
   private isDrawing = false;
   private isDragging = false;
@@ -33,11 +33,11 @@ export class EventHandler {
     this.appState = newAppState;
   }
 
-  public setOnElementsChanged(callback: (elements: ExcalidrawElement[]) => void) {
+  public setOnElementsChanged(callback: (elements: ScriblioElement[]) => void) {
     this.onElementsChanged = callback;
   }
 
-  public setElements(elements: ExcalidrawElement[]) {
+  public setElements(elements: ScriblioElement[]) {
     this.elements = [...elements];
     if (elements.length === 0) {
       this.appState.selectedElementIds = [];
@@ -257,9 +257,9 @@ export class EventHandler {
   }
 
   private startCreatingElement(type: string, point: Point) {
-    const element: ExcalidrawElement = {
+    const element: ScriblioElement = {
       id: this.generateId(),
-      type: type as ExcalidrawElement['type'],
+      type: type as ScriblioElement['type'],
       x: point.x,
       y: point.y,
       width: 0,
@@ -283,7 +283,7 @@ export class EventHandler {
   }
 
   private startCreatingLine(point: Point) {
-    const element: ExcalidrawElement = {
+    const element: ScriblioElement = {
       id: this.generateId(),
       type: 'line',
       x: point.x,
@@ -310,7 +310,7 @@ export class EventHandler {
   }
 
   private startDrawing(point: Point) {
-    const element: ExcalidrawElement = {
+    const element: ScriblioElement = {
       id: this.generateId(),
       type: 'freedraw',
       x: point.x,
@@ -357,7 +357,7 @@ export class EventHandler {
     if (!text) return;
 
     const fontSize = this.appState.currentItemFontSize;
-    const element: ExcalidrawElement = {
+    const element: ScriblioElement = {
       id: this.generateId(),
       type: 'text',
       x: point.x,
@@ -424,7 +424,7 @@ export class EventHandler {
 
           const displayScale = Math.min(1, MAX_DISPLAY / Math.max(img.width, img.height));
 
-          const element: ExcalidrawElement = {
+          const element: ScriblioElement = {
             id: this.generateId(),
             type: 'image',
             x: point.x,
@@ -556,7 +556,7 @@ export class EventHandler {
     }
   }
 
-  private getElementAtPoint(point: Point): ExcalidrawElement | null {
+  private getElementAtPoint(point: Point): ScriblioElement | null {
     for (let i = this.elements.length - 1; i >= 0; i--) {
       const element = this.elements[i];
       if (this.isPointInElement(point, element)) {
@@ -566,7 +566,7 @@ export class EventHandler {
     return null;
   }
 
-  private isPointInElement(point: Point, element: ExcalidrawElement): boolean {
+  private isPointInElement(point: Point, element: ScriblioElement): boolean {
     const minX = Math.min(element.x, element.x + element.width);
     const maxX = Math.max(element.x, element.x + element.width);
     const minY = Math.min(element.y, element.y + element.height);
@@ -587,7 +587,7 @@ export class EventHandler {
     return crypto.randomUUID();
   }
 
-  getElements(): ExcalidrawElement[] {
+  getElements(): ScriblioElement[] {
     return this.elements;
   }
 

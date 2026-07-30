@@ -15,7 +15,7 @@ export type ToolType =
   | 'image'
   | 'eraser';
 
-export interface ExcalidrawElement {
+export interface ScriblioElement {
   id: string;
   type: "rectangle" | "ellipse" | "diamond" | "arrow" | "line" | "freedraw" | "text" | "image";
   x: number;
@@ -58,10 +58,10 @@ export interface AppState {
   selectedElementIds: string[];
   activeTool: ToolType;
   isToolLocked: boolean;
-  editingElement: ExcalidrawElement | null;
-  draggingElement: ExcalidrawElement | null;
-  resizingElement: ExcalidrawElement | null;
-  multiElement: ExcalidrawElement | null;
+  editingElement: ScriblioElement | null;
+  draggingElement: ScriblioElement | null;
+  resizingElement: ScriblioElement | null;
+  multiElement: ScriblioElement | null;
   currentItemStrokeColor: string;
   currentItemBackgroundColor: string;
   currentItemFillStyle: "hachure" | "cross-hatch" | "solid" | "zigzag" | "dots";

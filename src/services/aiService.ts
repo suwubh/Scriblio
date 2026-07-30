@@ -111,7 +111,7 @@ Rules:
         messages: [
           {
             role: 'system',
-            content: `You are an Excalidraw diagram generator. You MUST respond with ONLY a valid JSON array.
+            content: `You are a Scriblio whiteboard diagram generator. You MUST respond with ONLY a valid JSON array.
 
 CRITICAL RULES:
 1. Output ONLY a JSON array starting with [ and ending with ]

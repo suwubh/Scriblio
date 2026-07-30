@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import * as Y from 'yjs'
-import { ExcalidrawElement } from '../../types/excalidraw'
+import { ScriblioElement } from '../../types/scriblio'
 import { YjsDocumentManager, LOCAL_ORIGIN } from '../managers/YjsDocumentManager'
 
 /**
@@ -24,23 +24,23 @@ import { YjsDocumentManager, LOCAL_ORIGIN } from '../managers/YjsDocumentManager
  */
 export function useCanvasSync(
   documentManager: YjsDocumentManager,
-  elements: ExcalidrawElement[],
-  applyRemoteElements: (elements: ExcalidrawElement[]) => void,
+  elements: ScriblioElement[],
+  applyRemoteElements: (elements: ScriblioElement[]) => void,
 ): void {
   // id -> JSON of what we believe is currently in the shared document.
   const docSnapshot = useRef<Map<string, string>>(new Map())
   // id -> JSON of the last local `elements` array this hook processed.
   const prevElements = useRef<Map<string, string>>(new Map())
   // Always-current local elements, readable from inside the observer closure.
-  const elementsRef = useRef<ExcalidrawElement[]>(elements)
+  const elementsRef = useRef<ScriblioElement[]>(elements)
   elementsRef.current = elements
 
   // -------------------------------- remote -> local --------------------------------
   useEffect(() => {
     const map = documentManager.elementsMap
 
-    const readAll = (): ExcalidrawElement[] => {
-      const out: ExcalidrawElement[] = []
+    const readAll = (): ScriblioElement[] => {
+      const out: ScriblioElement[] = []
       map.forEach((value) => {
         if (value && typeof value === 'object' && typeof value.id === 'string') {
           out.push(value)
@@ -58,7 +58,7 @@ export function useCanvasSync(
     // Hydrate from whatever already exists in the room.
     pullFromDoc(true)
 
-    const observer = (_event: Y.YMapEvent<ExcalidrawElement>, transaction: Y.Transaction) => {
+    const observer = (_event: Y.YMapEvent<ScriblioElement>, transaction: Y.Transaction) => {
       // Ignore the echo of our own writes.
       if (transaction.origin === LOCAL_ORIGIN) return
 
@@ -101,7 +101,7 @@ export function useCanvasSync(
     }
 
     // Upserts: created or changed elements that don't already match the doc.
-    const toUpsert: ExcalidrawElement[] = []
+    const toUpsert: ScriblioElement[] = []
     for (const el of elements) {
       if (docSnapshot.current.get(el.id) !== current.get(el.id)) {
         toUpsert.push(el)

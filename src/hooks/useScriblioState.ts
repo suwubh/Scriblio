@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { ExcalidrawElement, AppState, ToolType } from '../types/excalidraw';
+import { ScriblioElement, AppState, ToolType } from '../types/scriblio';
 import { CanvasApp } from '../components/Canvas';
 
 const DEFAULT_APP_STATE: AppState = {
@@ -41,8 +41,8 @@ const DEFAULT_APP_STATE: AppState = {
  * Undo/redo is NOT handled here — it lives in the shared Yjs document
  * (`useYjsHistory`), so it stays correct across collaborators.
  */
-export function useExcalidrawState() {
-  const [elements, setElements] = useState<ExcalidrawElement[]>([]);
+export function useScriblioState() {
+  const [elements, setElements] = useState<ScriblioElement[]>([]);
   const [appState, setAppState] = useState<AppState>(DEFAULT_APP_STATE);
 
   const canvasAppRef = useRef<CanvasApp | null>(null);
@@ -59,19 +59,19 @@ export function useExcalidrawState() {
     });
   }, []);
 
-  const setElementsFromCanvas = useCallback((newElements: ExcalidrawElement[]) => {
+  const setElementsFromCanvas = useCallback((newElements: ScriblioElement[]) => {
     setElements(newElements);
   }, []);
 
   // Applies elements received from a remote collaborator (or an undo/redo
   // replayed through the shared document). Updates React state and the canvas
   // without re-broadcasting.
-  const applyRemoteElements = useCallback((remoteElements: ExcalidrawElement[]) => {
+  const applyRemoteElements = useCallback((remoteElements: ScriblioElement[]) => {
     setElements(remoteElements);
     canvasAppRef.current?.setElements(remoteElements);
   }, []);
 
-  const addElement = useCallback((element: ExcalidrawElement) => {
+  const addElement = useCallback((element: ScriblioElement) => {
     setElements(prev => {
       const next = [...prev, element];
       canvasAppRef.current?.setElements(next);
@@ -79,7 +79,7 @@ export function useExcalidrawState() {
     });
   }, []);
 
-  const updateElement = useCallback((id: string, updates: Partial<ExcalidrawElement>) => {
+  const updateElement = useCallback((id: string, updates: Partial<ScriblioElement>) => {
     setElements(prev => {
       const next = prev.map(el => el.id === id ? { ...el, ...updates } : el);
       canvasAppRef.current?.setElements(next);

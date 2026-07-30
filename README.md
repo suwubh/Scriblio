@@ -229,7 +229,7 @@ Scriblio/
 │   ├── collaboration/       # Yjs providers, WebRTC/Redis managers, presence hooks
 │   ├── components/          # React UI (canvas, toolbar, panels, AI modal)
 │   ├── engine/              # Canvas renderer and pointer event handler
-│   ├── hooks/               # useExcalidrawState, useUndoRedo
+│   ├── hooks/               # useScriblioState, useUndoRedo
 │   ├── services/            # aiService.ts — AI API client
 │   ├── types/               # TypeScript definitions
 │   └── App.tsx

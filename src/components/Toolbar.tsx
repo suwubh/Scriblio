@@ -1,4 +1,4 @@
-import { AppState, ToolType } from '../types/excalidraw';
+import { AppState, ToolType } from '../types/scriblio';
 
 interface ToolbarProps {
   appState: AppState;

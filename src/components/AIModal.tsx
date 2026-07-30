@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { aiService, AIMessage } from '../services/aiService';
-import { ExcalidrawElement } from '../types/excalidraw';
+import { ScriblioElement } from '../types/scriblio';
 
 interface AIModalProps {
   isOpen: boolean;
   onClose: () => void;
-  elements: ExcalidrawElement[];
-  selectedElements: ExcalidrawElement[];
-  onAddElements: (elements: Partial<ExcalidrawElement>[]) => void;
+  elements: ScriblioElement[];
+  selectedElements: ScriblioElement[];
+  onAddElements: (elements: Partial<ScriblioElement>[]) => void;
 }
 
 type AIMode = 'chat' | 'summarize' | 'generate' | 'optimize';

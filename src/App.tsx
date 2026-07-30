@@ -1,9 +1,9 @@
 import { useRef, useState, useEffect } from 'react'
-import { ExcalidrawCanvas, ExcalidrawCanvasRef } from './components/ExcalidrawCanvas'
+import { ScriblioCanvas, ScriblioCanvasRef } from './components/ScriblioCanvas'
 import { Toolbar } from './components/Toolbar'
 import { PropertiesPanel } from './components/PropertiesPanel'
 import { Footer } from './components/Footer'
-import { useExcalidrawState } from './hooks/useExcalidrawState'
+import { useScriblioState } from './hooks/useScriblioState'
 import {
   CollaborationProvider,
   PresenceProvider,
@@ -18,11 +18,11 @@ import { RoomLanding } from './components/RoomLanding'
 import { RoomBar } from './components/RoomBar'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AICommandPalette } from './components/AICommandPalette'
-import './styles/excalidraw.css'
+import './styles/scriblio.css'
 import './styles/ai-modal.css'
 import './styles/ai-command-palette.css'
 import './styles/room.css'
-import { AppState, ExcalidrawElement } from './types/excalidraw'
+import { AppState, ScriblioElement } from './types/scriblio'
 
 const STORAGE_NAME_KEY = 'scriblio:user-name'
 
@@ -51,7 +51,7 @@ function AppContent({ roomId, onLeaveRoom }: AppContentProps) {
     setCanvasAppRef,
     setElementsFromCanvas,
     applyRemoteElements,
-  } = useExcalidrawState()
+  } = useScriblioState()
 
   // Bridge the local canvas with the shared Yjs document for this room.
   const { documentManager } = useCollaboration()
@@ -79,7 +79,7 @@ function AppContent({ roomId, onLeaveRoom }: AppContentProps) {
     return () => document.removeEventListener('keydown', handleKeyboard)
   }, [undo, redo])
 
-  const canvasRef = useRef<ExcalidrawCanvasRef>(null)
+  const canvasRef = useRef<ScriblioCanvasRef>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
 
   const handleToolChange = (tool: string) => {
@@ -146,9 +146,9 @@ function AppContent({ roomId, onLeaveRoom }: AppContentProps) {
     input.click()
   }
 
-  const handleAddAIElements = (aiElements: Partial<ExcalidrawElement>[]) => {
+  const handleAddAIElements = (aiElements: Partial<ScriblioElement>[]) => {
     aiElements.forEach((element) => {
-      addElement(element as ExcalidrawElement)
+      addElement(element as ScriblioElement)
     })
   }
 
@@ -213,7 +213,7 @@ function AppContent({ roomId, onLeaveRoom }: AppContentProps) {
 
       <div className="content">
         <div className="canvas-wrap">
-          <ExcalidrawCanvas
+          <ScriblioCanvas
             ref={canvasRef}
             elements={elements}
             appState={appState}

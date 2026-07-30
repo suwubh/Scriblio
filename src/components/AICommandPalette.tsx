@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AIModal } from './AIModal';
-import { ExcalidrawElement } from '../types/excalidraw';
+import { ScriblioElement } from '../types/scriblio';
 
 interface AICommandPaletteProps {
-  elements: ExcalidrawElement[];
-  selectedElements: ExcalidrawElement[];
-  onAddElements: (elements: Partial<ExcalidrawElement>[]) => void;
+  elements: ScriblioElement[];
+  selectedElements: ScriblioElement[];
+  onAddElements: (elements: Partial<ScriblioElement>[]) => void;
 }
 
 const SparklesGlyph = () => (

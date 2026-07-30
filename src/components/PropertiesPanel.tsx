@@ -1,7 +1,7 @@
-import { ExcalidrawElement, AppState } from '../types/excalidraw';
+import { ScriblioElement, AppState } from '../types/scriblio';
 
 interface PropertiesPanelProps {
-  selectedElements: ExcalidrawElement[];
+  selectedElements: ScriblioElement[];
   appState: AppState;
   onPropertyChange: (updates: Partial<AppState>) => void;
   isOpen: boolean;
@@ -10,7 +10,7 @@ interface PropertiesPanelProps {
   onExport: () => void;
   onImport: () => void;
   onDeleteElements: (ids: string[]) => void;
-  onUpdateElement: (id: string, updates: Partial<ExcalidrawElement>) => void;
+  onUpdateElement: (id: string, updates: Partial<ScriblioElement>) => void;
 }
 
 export function PropertiesPanel({ 
@@ -170,7 +170,7 @@ export function PropertiesPanel({
             step="0.1"
             value={appState.currentItemRoughness}
             onChange={(e) => onPropertyChange({ currentItemRoughness: Number(e.target.value) })}
-            className="excalidraw-slider"
+            className="scriblio-slider"
           />
           <div className="slider-labels">
             <span>Architect</span>
@@ -189,7 +189,7 @@ export function PropertiesPanel({
             step="1"
             value={appState.currentItemOpacity}
             onChange={(e) => onPropertyChange({ currentItemOpacity: Number(e.target.value) })}
-            className="excalidraw-slider"
+            className="scriblio-slider"
           />
         </div>
       </div>

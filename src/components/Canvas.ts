@@ -1,6 +1,6 @@
 import { CanvasRenderer } from '../engine/renderer';
 import { EventHandler } from '../engine/eventHandler';
-import { AppState, ExcalidrawElement, Point } from '../types/excalidraw';
+import { AppState, ScriblioElement, Point } from '../types/scriblio';
 
 export class CanvasApp {
   private canvas: HTMLCanvasElement;
@@ -10,7 +10,7 @@ export class CanvasApp {
   private animationId: number | null = null;
   private isDestroyed = false;
 
-  private onElementsMutated?: (elements: ExcalidrawElement[]) => void;
+  private onElementsMutated?: (elements: ScriblioElement[]) => void;
   private onAppStateMutated?: (appState: AppState) => void;
 
   private lastElementsSig = '';
@@ -33,7 +33,7 @@ export class CanvasApp {
     this.startRenderLoop();
   }
 
-  public setOnElementsMutated(cb: (elements: ExcalidrawElement[]) => void) {
+  public setOnElementsMutated(cb: (elements: ScriblioElement[]) => void) {
     this.onElementsMutated = cb;
   }
 
@@ -94,7 +94,7 @@ export class CanvasApp {
       this.renderer.render(elementsToRender, this.appState, selectionRect);
 
       if (this.hasElementsChanged(elements) && this.onElementsMutated && !this.isDestroyed) {
-        this.onElementsMutated(JSON.parse(JSON.stringify(elements)) as ExcalidrawElement[]);
+        this.onElementsMutated(JSON.parse(JSON.stringify(elements)) as ScriblioElement[]);
       }
 
       const appSig = this.generateAppStateSignature(this.appState);
@@ -111,7 +111,7 @@ export class CanvasApp {
     render();
   }
 
-  private hasElementsChanged(elements: ExcalidrawElement[]): boolean {
+  private hasElementsChanged(elements: ScriblioElement[]): boolean {
     if (elements.length !== this.lastElementsCount) {
       this.lastElementsCount = elements.length;
       this.lastElementsSig = this.generateElementsSignature(elements);
@@ -127,7 +127,7 @@ export class CanvasApp {
     return false;
   }
 
-  private generateElementsSignature(elements: ExcalidrawElement[]): string {
+  private generateElementsSignature(elements: ScriblioElement[]): string {
     return elements
       .map(el => `${el.id}:${el.x}:${el.y}:${el.width}:${el.height}:${el.updated}`)
       .join('|');
@@ -145,7 +145,7 @@ export class CanvasApp {
     this.lastAppStateSig = this.generateAppStateSignature(this.appState);
   }
 
-  public setElements(elements: ExcalidrawElement[]) {
+  public setElements(elements: ScriblioElement[]) {
     if (this.isDestroyed) return;
 
     this.eventHandler.setElements(elements);

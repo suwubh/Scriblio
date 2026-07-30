@@ -1,5 +1,5 @@
 import * as Y from 'yjs'
-import { ExcalidrawElement } from '../../types/excalidraw'
+import { ScriblioElement } from '../../types/scriblio'
 
 /** Transaction origin tag for writes made by the local user. */
 export const LOCAL_ORIGIN = 'scriblio-local'
@@ -13,7 +13,7 @@ export const LOCAL_ORIGIN = 'scriblio-local'
  */
 export class YjsDocumentManager {
   public doc: Y.Doc
-  public elementsMap: Y.Map<ExcalidrawElement>
+  public elementsMap: Y.Map<ScriblioElement>
   public undoManager: Y.UndoManager
 
   constructor(roomId: string) {
