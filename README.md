@@ -20,7 +20,7 @@ flowchart TB
     AIS["AI Service\naiService  ·  diagramParser"]
     AWR["AwarenessManager\nLive cursors"]
     RMG["RedisManager\nPresence  ·  pub/sub"]
-    HK["useExcalidrawState\nuseYjsHistory  ·  useCanvasSync"]
+    HK["useScriblioState\nuseYjsHistory  ·  useCanvasSync"]
   end
 
   subgraph BACKEND["Backend Services  (Docker Compose)"]
